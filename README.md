@@ -1,2 +1,2 @@
 # wharfie
-A utility package for some custom functionality to augment go-containerregistry
+Utility libraries to provide additional functionality for users of go-containerregistry
