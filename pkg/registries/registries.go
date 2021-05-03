@@ -32,7 +32,8 @@ type registry struct {
 var _ authn.Keychain = &registry{}
 var _ http.RoundTripper = &registry{}
 
-// getPrivateRegistries loads private registry configuration from registries.yaml
+// getPrivateRegistries loads private registry configuration from a given file
+// If no file exists at the given path, default settings are returned.
 func GetPrivateRegistries(path string) (*registry, error) {
 	registry := &registry{
 		r: &Registry{},
@@ -46,7 +47,7 @@ func GetPrivateRegistries(path string) (*registry, error) {
 		}
 		return nil, err
 	}
-	logrus.Infof("Using registry config file at %s", path)
+	logrus.Infof("Using private registry config file at %s", path)
 	if err := yaml.Unmarshal(privRegistryFile, registry.r); err != nil {
 		return nil, err
 	}

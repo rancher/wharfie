@@ -1,4 +1,4 @@
-package readcloser
+package tarfile
 
 import (
 	"io"
