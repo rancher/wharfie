@@ -11,7 +11,7 @@ USAGE:
    wharfie [global options] command [command options] [arguments...]
 
 VERSION:
-   v0.0.1-dirty
+   v0.1.0
 
 DESCRIPTION:
    Honors K3s/RKE2 style repository rewrites, endpoint overrides, and auth configuration. Supports optional loading from local image tarballs or layer cache.
