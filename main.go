@@ -100,7 +100,7 @@ func run(clx *cli.Context) error {
 		}
 
 		i, err := tarfile.FindImage(imagesDir, image)
-		if err != nil && !errors.Is(err, tarfile.NotFoundError) {
+		if err != nil && !errors.Is(err, tarfile.ErrNotFound) {
 			return err
 		}
 		img = i

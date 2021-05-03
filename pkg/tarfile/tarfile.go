@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -18,7 +19,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
+var (
+	ErrNotFound = errors.New("image not found")
+	// This needs to be kept in sync with the decompressor list
+	SupportedExtensions = []string{".tar", ".tar.lz4", ".tar.bz2", ".tbz", ".tar.gz", ".tgz", ".tar.zst", ".tzst"}
 	// The zstd decoder will attempt to use up to 1GB memory for streaming operations by default,
 	// which is excessive and will OOM low-memory devices.
 	// NOTE: This must be at least as large as the window size used when compressing tarballs, or you
@@ -26,14 +30,12 @@ const (
 	// default; the --long option defaults to 27 or 128M, which is still too much for a Pi3. 32MB
 	// (--long=25) has been tested to work acceptably while still compressing by an additional 3-6% on
 	// our datasets.
-	MaxDecoderMemory = 1 << 25
-	ExtensionList    = ".tar .tar.lz4 .tar.bz2 .tbz .tar.gz .tgz .tar.zst .tzst" // keep this in sync with the decompressor list
+	MaxDecoderMemory = uint64(1 << 25)
 )
 
-var (
-	NotFoundError = errors.New("image not found")
-)
-
+// FindImage checks tarball files in a given directory for a copy of the referenced image. The image reference must be a Tag, not a Digest.
+// The image is retrieved from the first file (ordered by name) that it is found in; there is no preference in terms of compression format.
+// If the image is not found in any file in the given directory, a NotFoundError is returned.
 func FindImage(imagesDir string, imageRef name.Reference) (v1.Image, error) {
 	imageTag, ok := imageRef.(name.Tag)
 	if !ok {
@@ -42,20 +44,22 @@ func FindImage(imagesDir string, imageRef name.Reference) (v1.Image, error) {
 
 	if _, err := os.Stat(imagesDir); err != nil {
 		if os.IsNotExist(err) {
-			return nil, errors.Wrapf(NotFoundError, "no local image available for %s: directory %s does not exist", imageTag.Name(), imagesDir)
+			return nil, errors.Wrapf(ErrNotFound, "no local image available for %s: directory %s does not exist", imageTag.Name(), imagesDir)
 		}
 		return nil, err
 	}
 
 	logrus.Infof("Checking local image archives in %s for %s", imagesDir, imageTag.Name())
 
-	// Walk the images dir to get a list of tar files
+	// Walk the images dir to get a list of tar files.
+	// dotfiles and files with unsupported extensions are ignored.
 	files := map[string]os.FileInfo{}
 	if err := filepath.Walk(imagesDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() {
+		base := filepath.Base(info.Name())
+		if !info.IsDir() && !strings.HasPrefix(base, ".") && util.HasSuffixI(base, SupportedExtensions...) {
 			files[path] = info
 		}
 		return nil
@@ -66,22 +70,35 @@ func FindImage(imagesDir string, imageRef name.Reference) (v1.Image, error) {
 	// Try to find the requested tag in each file, moving on to the next if there's an error
 	for fileName := range files {
 		img, err := findImage(fileName, imageTag)
+		if err != nil {
+			logrus.Infof("Failed to find %s in %s: %v", imageTag.Name(), fileName, err)
+		}
 		if img != nil {
 			logrus.Debugf("Found %s in %s", imageTag.Name(), fileName)
 			return img, nil
 		}
-		if err != nil {
-			logrus.Infof("Failed to find %s in %s: %v", imageTag.Name(), fileName, err)
-		}
 	}
-	return nil, errors.Wrapf(NotFoundError, "no local image available for %s: not found in any file in %s", imageTag.Name(), imagesDir)
+	return nil, errors.Wrapf(ErrNotFound, "no local image available for %s: not found in any file in %s", imageTag.Name(), imagesDir)
 }
 
+// findImage returns a handle to an image in a tarfile on disk.
+// If the image is not found in the file, an error is returned.
 func findImage(fileName string, imageTag name.Tag) (v1.Image, error) {
+	opener, err := getOpener(fileName)
+	if err != nil {
+		return nil, err
+	}
+	return tarball.Image(opener, &imageTag)
+}
+
+// getOpener returns a function implementing the tarball.Opener interface.
+// This is required because compressed tarballs are not seekable, and the image
+// reader may need to seek backwards in the file to find a required layer.
+// Instead of seeking backwards, it just closes and reopens the file.
+// If the file format is not supoprted, an error is returned.
+func getOpener(fileName string) (tarball.Opener, error) {
 	var opener tarball.Opener
 	switch {
-	case util.HasSuffixI(fileName, ".txt"):
-		return nil, nil
 	case util.HasSuffixI(fileName, ".tar"):
 		opener = func() (io.ReadCloser, error) {
 			return os.Open(fileName)
@@ -129,12 +146,7 @@ func findImage(fileName string, imageTag name.Tag) (v1.Image, error) {
 			return ZstdReadCloser(zr, file), nil
 		}
 	default:
-		return nil, fmt.Errorf("unhandled file type; supported extensions: " + ExtensionList)
+		return nil, fmt.Errorf("unhandled file type; supported extensions: " + strings.Join(SupportedExtensions, " "))
 	}
-
-	img, err := tarball.Image(opener, &imageTag)
-	if err != nil {
-		return nil, err
-	}
-	return img, nil
+	return opener, nil
 }

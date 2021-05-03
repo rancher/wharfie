@@ -34,6 +34,7 @@ var _ http.RoundTripper = &registry{}
 
 // getPrivateRegistries loads private registry configuration from a given file
 // If no file exists at the given path, default settings are returned.
+// Errors such as unreadable files or unparseable content are raised.
 func GetPrivateRegistries(path string) (*registry, error) {
 	registry := &registry{
 		r: &Registry{},
