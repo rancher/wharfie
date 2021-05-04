@@ -39,12 +39,13 @@ require (
 	github.com/klauspost/compress v1.12.2
 	github.com/pierrec/lz4 v2.6.0+incompatible
 	github.com/pkg/errors v0.9.1
-	github.com/rancher/wrangler v0.8.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.2
+	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.21.0 // indirect
+	k8s.io/apimachinery v0.18.8 // indirect
+	k8s.io/client-go v0.18.8 // indirect
 	k8s.io/klog v1.0.0
-	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubernetes v1.21.0
 )

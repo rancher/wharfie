@@ -8,13 +8,13 @@ NAME:
    wharfie - pulls and unpacks a container image to the local filesystem
 
 USAGE:
-   wharfie [global options] command [command options] [arguments...]
+   wharfie [global options] command [command options] <image> <destination>
 
 VERSION:
-   v0.3.0
+   v0.3.1
 
 DESCRIPTION:
-   Support K3s/RKE2 style repository rewrites, endpoint overrides, and auth configuration.
+   Supports K3s/RKE2 style repository rewrites, endpoint overrides, and auth configuration.
    Supports optional loading from local image tarballs or layer cache.
    Supports Kubelet credential provider plugins.
 
@@ -22,8 +22,6 @@ COMMANDS:
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --image value                              Image reference to unpack
-   --destination value                        Location to place the unpacked image content
    --private-registry value                   Private registry configuration file (default: "/etc/rancher/common/registries.yaml")
    --images-dir value                         Images tarball directory
    --cache                                    Enable layer cache when image is not available locally
@@ -34,3 +32,14 @@ GLOBAL OPTIONS:
    --help, -h                                 show help
    --version, -v                              print the version
 ```
+
+### image credential providers
+
+([KEP-2133](https://github.com/kubernetes/enhancements/issues/2133)) [kubelet image credential providers](https://kubernetes.io/docs/tasks/kubelet-credential-provider/kubelet-credential-provider/) are supported.
+At the time of this writing, none of the out-of-tree cloud providers offer standalone binaries. The wharfie docker image (available by running `make package-image`) bundles provider plugins at `/bin/plugins`,
+with a sample config file at `/etc/config.yaml`.
+
+More information is available at:
+* https://github.com/kubernetes/cloud-provider-aws/tree/master/cmd/ecr-credential-provider
+* https://github.com/kubernetes/cloud-provider-gcp/tree/master/cmd/auth-provider-gcp
+* https://github.com/kubernetes-sigs/cloud-provider-azure/issues/289

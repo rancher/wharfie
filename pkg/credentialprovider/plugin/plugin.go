@@ -47,11 +47,13 @@ func (p *pluginWrapper) Resolve(target authn.Resource) (authn.Authenticator, err
 	return authn.Anonymous, nil
 }
 
+// klogSetup syncs the klog verbosity to the current Logrus log level. This is necessary because the
+// auth plugin stuff all uses klog/v2 and there's no good translation layer between logrus and klog.
 func klogSetup() {
 	klogFlags := flag.NewFlagSet("klog", flag.ContinueOnError)
 	klog.InitFlags(klogFlags)
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
-		klogFlags.Set("v", "9")
+		_ = klogFlags.Set("v", "9")
 	}
-	klogFlags.Parse(nil)
+	_ = klogFlags.Parse(nil)
 }

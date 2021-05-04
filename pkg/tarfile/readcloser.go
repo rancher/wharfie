@@ -4,7 +4,7 @@ import (
 	"io"
 
 	"github.com/klauspost/compress/zstd"
-	"github.com/rancher/wrangler/pkg/merr"
+	"github.com/urfave/cli"
 )
 
 // Explicit interface checks
@@ -58,7 +58,7 @@ func (m multiReadCloser) Close() error {
 	if err := m.c.Close(); err != nil {
 		errs = append(errs, err)
 	}
-	return merr.NewErrors(errs...)
+	return cli.NewMultiError(errs...)
 }
 
 // SplitReadCloser implements the ReadCloser interface for decompressors that don't need to be

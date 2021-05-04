@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
-
-	"flag"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -20,7 +19,6 @@ import (
 	"github.com/rancher/wharfie/pkg/tarfile"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	"k8s.io/klog/v2"
 )
 
 var (
@@ -31,20 +29,11 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "wharfie"
 	app.Usage = "pulls and unpacks a container image to the local filesystem"
-	app.Description = "Support K3s/RKE2 style repository rewrites, endpoint overrides, and auth configuration. Supports optional loading from local image tarballs or layer cache. Supports Kubelet credential provider plugins."
+	app.Description = "Supports K3s/RKE2 style repository rewrites, endpoint overrides, and auth configuration. Supports optional loading from local image tarballs or layer cache. Supports Kubelet credential provider plugins."
+	app.ArgsUsage = "<image> <destination>"
 	app.Version = version
 	app.Action = run
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:     "image",
-			Usage:    "Image reference to unpack",
-			Required: true,
-		},
-		cli.StringFlag{
-			Name:     "destination",
-			Usage:    "Location to place the unpacked image content",
-			Required: true,
-		},
 		cli.StringFlag{
 			Name:  "private-registry",
 			Usage: "Private registry configuration file",
@@ -77,7 +66,7 @@ func main() {
 		},
 	}
 
-	if os.Getenv("XDG_CACHE_HOME") == "" {
+	if os.Getenv("XDG_CACHE_HOME") == "" && os.Getenv("HOME") != "" {
 		os.Setenv("XDG_CACHE_HOME", os.ExpandEnv("$HOME/.cache"))
 	}
 
@@ -91,21 +80,21 @@ func main() {
 func run(clx *cli.Context) error {
 	var img v1.Image
 
-	klogFlags := flag.NewFlagSet("klog", flag.ContinueOnError)
-	klog.InitFlags(klogFlags)
+	if len(clx.Args()) < 2 {
+		fmt.Fprintf(clx.App.Writer, "Incorrect Usage. <image> and <destination> are required arguments.\n\n")
+		cli.ShowAppHelpAndExit(clx, 1)
+	}
 
 	if clx.Bool("debug") {
 		logrus.SetLevel(logrus.TraceLevel)
-		klogFlags.Set("v", "9")
 	}
-	klogFlags.Parse(nil)
 
-	image, err := name.ParseReference(clx.String("image"))
+	image, err := name.ParseReference(clx.Args().Get(0))
 	if err != nil {
 		return err
 	}
 
-	destination, err := filepath.Abs(os.ExpandEnv(clx.String("destination")))
+	destination, err := filepath.Abs(os.ExpandEnv(clx.Args().Get(1)))
 	if err != nil {
 		return err
 	}
