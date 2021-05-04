@@ -11,22 +11,26 @@ USAGE:
    wharfie [global options] command [command options] [arguments...]
 
 VERSION:
-   v0.1.0
+   v0.3.0
 
 DESCRIPTION:
-   Honors K3s/RKE2 style repository rewrites, endpoint overrides, and auth configuration. Supports optional loading from local image tarballs or layer cache.
+   Support K3s/RKE2 style repository rewrites, endpoint overrides, and auth configuration.
+   Supports optional loading from local image tarballs or layer cache.
+   Supports Kubelet credential provider plugins.
 
 COMMANDS:
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --image value             Image reference to unpack
-   --destination value       Location to place the unpacked image content
-   --private-registry value  Private registry configuration file (default: "/etc/rancher/common/registries.yaml")
-   --images-dir value        Images tarball directory
-   --cache                   Enable layer cache when image is not available locally
-   --cache-dir value         Layer cache directory (default: "$XDG_CACHE_HOME/rancher/wharfie")
-   --debug                   Enable debug logging
-   --help, -h                show help
-   --version, -v             print the version
+   --image value                              Image reference to unpack
+   --destination value                        Location to place the unpacked image content
+   --private-registry value                   Private registry configuration file (default: "/etc/rancher/common/registries.yaml")
+   --images-dir value                         Images tarball directory
+   --cache                                    Enable layer cache when image is not available locally
+   --cache-dir value                          Layer cache directory (default: "$XDG_CACHE_HOME/rancher/wharfie")
+   --image-credential-provider-config value   Image credential provider configuration file
+   --image-credential-provider-bin-dir value  Image credential provider binary directory
+   --debug                                    Enable debug logging
+   --help, -h                                 show help
+   --version, -v                              print the version
 ```
