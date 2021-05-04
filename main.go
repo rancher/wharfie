@@ -7,16 +7,20 @@ import (
 
 	"github.com/pkg/errors"
 
+	"flag"
+
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/cache"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/rancher/wharfie/pkg/credentialprovider/plugin"
 	"github.com/rancher/wharfie/pkg/extract"
 	"github.com/rancher/wharfie/pkg/registries"
 	"github.com/rancher/wharfie/pkg/tarfile"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -27,7 +31,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "wharfie"
 	app.Usage = "pulls and unpacks a container image to the local filesystem"
-	app.Description = "Honors K3s/RKE2 style repository rewrites, endpoint overrides, and auth configuration. Supports optional loading from local image tarballs or layer cache."
+	app.Description = "Support K3s/RKE2 style repository rewrites, endpoint overrides, and auth configuration. Supports optional loading from local image tarballs or layer cache. Supports Kubelet credential provider plugins."
 	app.Version = version
 	app.Action = run
 	app.Flags = []cli.Flag{
@@ -59,6 +63,14 @@ func main() {
 			Usage: "Layer cache directory",
 			Value: "$XDG_CACHE_HOME/rancher/wharfie",
 		},
+		cli.StringFlag{
+			Name:  "image-credential-provider-config",
+			Usage: "Image credential provider configuration file",
+		},
+		cli.StringFlag{
+			Name:  "image-credential-provider-bin-dir",
+			Usage: "Image credential provider binary directory",
+		},
 		cli.BoolFlag{
 			Name:  "debug",
 			Usage: "Enable debug logging",
@@ -71,7 +83,7 @@ func main() {
 
 	if err := app.Run(os.Args); err != nil {
 		if !errors.Is(err, context.Canceled) {
-			logrus.Fatal(err)
+			logrus.Fatalf("Error: %v", err)
 		}
 	}
 }
@@ -79,9 +91,14 @@ func main() {
 func run(clx *cli.Context) error {
 	var img v1.Image
 
+	klogFlags := flag.NewFlagSet("klog", flag.ContinueOnError)
+	klog.InitFlags(klogFlags)
+
 	if clx.Bool("debug") {
 		logrus.SetLevel(logrus.TraceLevel)
+		klogFlags.Set("v", "9")
 	}
+	klogFlags.Parse(nil)
 
 	image, err := name.ParseReference(clx.String("image"))
 	if err != nil {
@@ -112,7 +129,26 @@ func run(clx *cli.Context) error {
 			return err
 		}
 
-		multiKeychain := authn.NewMultiKeychain(registry, authn.DefaultKeychain)
+		// Prefer registries.yaml auth config
+		kcs := []authn.Keychain{registry}
+
+		// Next check Kubelet image credential provider plugins, if configured
+		if clx.IsSet("image-credential-provider-config") && clx.IsSet("image-credential-provider-bin-dir") {
+			plugins, err := plugin.RegisterCredentialProviderPlugins(clx.String("image-credential-provider-config"), clx.String("image-credential-provider-bin-dir"))
+			if err != nil {
+				return err
+			}
+			kcs = append(kcs, plugins)
+		} else {
+			// The kubelet image credential provider plugin also falls back to checking legacy Docker credentials, so only
+			// explicitly set up the go-containerregistry DefaultKeychain if plugins are not configured.
+			// DefaultKeychain tries to read config from the home dir, and will error if HOME isn't set, so also gate on that.
+			if os.Getenv("HOME") != "" {
+				kcs = append(kcs, authn.DefaultKeychain)
+			}
+		}
+
+		multiKeychain := authn.NewMultiKeychain(kcs...)
 
 		logrus.Infof("Pulling image %s", image.Name())
 		img, err = remote.Image(registry.Rewrite(image), remote.WithAuthFromKeychain(multiKeychain), remote.WithTransport(registry))

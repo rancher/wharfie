@@ -11,4 +11,6 @@
 /.viminfo
 /.lesshst
 /*.log
+/.test
+/bin
 /wharfie

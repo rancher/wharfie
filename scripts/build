@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e -x
+
+cd $(dirname $0)/..
+
+LDFLAGS="
+  -X main.version=`git describe --tags --dirty`
+  -w -s
+"
+STATIC="-extldflags '-static -lm -ldl -lz -lpthread'"
+TAGS="netcgo osusergo static_build"
+
+CGO_ENABLED=0 go build -v -tags "$TAGS" -ldflags "$LDFLAGS $STATIC" -o bin/wharfie ./main.go

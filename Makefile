@@ -1,23 +1,13 @@
-GOCMD=go
-GOBUILD=$(GOCMD) build
-GOCLEAN=$(GOCMD) clean
-GOTEST=$(GOCMD) test
-TARGET=wharfie
-SRC=$(shell find . -type f -name '*.go' -not -path "./vendor/*")
+TARGETS := $(shell ls scripts | grep -vF .sh)
 
-.PHONY: all test build
+.dapper:
+	@echo Downloading dapper
+	@curl -sL https://releases.rancher.com/dapper/v0.5.1/dapper-$$(uname -s)-$$(uname -m) > .dapper.tmp
+	@@chmod +x .dapper.tmp
+	@./.dapper.tmp -v
+	@mv .dapper.tmp .dapper
 
-all: test build
+$(TARGETS): .dapper
+	./.dapper $@
 
-test: $(SRC)
-	$(GOTEST) -v ./...
-
-build: $(TARGET)
-	@true
-
-clean:
-	$(GOCLEAN)
-	rm -f $(TARGET)
-
-$(TARGET): $(SRC)
-	$(GOBUILD) -o $(TARGET) -v -ldflags "-X main.version=`git describe --tags --dirty`"
+.DEFAULT_GOAL := ci
