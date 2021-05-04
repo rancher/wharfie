@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/google/go-containerregistry/pkg/authn"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	kubecredentialprovider "k8s.io/kubernetes/pkg/credentialprovider"
 	kubeplugin "k8s.io/kubernetes/pkg/credentialprovider/plugin"
 )
