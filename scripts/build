@@ -2,12 +2,12 @@
 set -e -x
 
 cd $(dirname $0)/..
-
-LDFLAGS="
-  -X main.version=`git describe --tags --dirty`
-  -w -s
-"
-STATIC="-extldflags '-static -lm -ldl -lz -lpthread'"
+LDFLAGS="-w -s -X main.version=`git describe --tags --dirty`"
 TAGS="netcgo osusergo static_build"
+ARCH=$(go env GOARCH)
+if [ ${ARCH} = armv7l ] || [ ${ARCH} = arm ]; then
+    export GOARCH="arm"
+    export GOARM="7"
+fi
 
-CGO_ENABLED=0 go build -v -tags "$TAGS" -ldflags "$LDFLAGS $STATIC" -o bin/wharfie ./main.go
+CGO_ENABLED=0 go build -v -tags "$TAGS" -ldflags "$LDFLAGS" -o bin/wharfie ./main.go

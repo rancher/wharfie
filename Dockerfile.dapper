@@ -7,7 +7,7 @@ RUN apk -U --no-cache add bash git gcc musl-dev docker-cli zlib-dev zlib-static 
 ENV DAPPER_RUN_ARGS --privileged -v mod-cache:/go/pkg/mod/cache -v wharfie-cache:/go/src/github.com/rancher/wharfie/.cache
 ENV DAPPER_ENV ARCH REPO TAG DRONE_TAG IMAGE_NAME CROSS SKIP_VALIDATE
 ENV DAPPER_SOURCE /go/src/github.com/rancher/wharfie/
-ENV DAPPER_OUTPUT ./bin
+ENV DAPPER_OUTPUT ./bin ./dist
 ENV DAPPER_DOCKER_SOCKET true
 ENV HOME ${DAPPER_SOURCE}
 WORKDIR ${DAPPER_SOURCE}

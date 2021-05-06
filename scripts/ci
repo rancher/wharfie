@@ -6,3 +6,14 @@ cd $(dirname $0)/..
 ./scripts/test
 ./scripts/build
 ./scripts/build-plugins
+
+mkdir -p dist/artifacts
+ARCH=$(go env GOARCH)
+if [ ${ARCH} = armv7l ] || [ ${ARCH} = arm ]; then
+    ARCH="arm"
+fi
+
+for FILE in bin/wharfie bin/plugins/*; do
+  cp ${FILE} dist/artifacts/$(basename $FILE)-${ARCH}
+done
+sed "s/  - name: .*/&-${ARCH}/" package/config.yaml > dist/artifacts/config-${ARCH}.yaml
