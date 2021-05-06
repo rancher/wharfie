@@ -1,0 +1,18 @@
+#!/bin/bash
+set -e -x
+
+cd $(dirname $0)/..
+BASE=$(pwd)
+export GO111MODULE=on CGO_ENABLED=0
+
+mkdir -p ${BASE}/build/plugins ${BASE}/bin/plugins
+
+cd ${BASE}/build/plugins
+git clone -b v1.20.0-alpha.0 --depth 1 https://github.com/kubernetes/cloud-provider-aws.git
+cd cloud-provider-aws
+go build -ldflags="-w -s" -o=${BASE}/bin/plugins/ecr-credential-provider cmd/ecr-credential-provider/*.go
+
+cd ${BASE}/build/plugins
+git clone -b v0.21.0 --depth 1 https://github.com/kubernetes/cloud-provider-gcp.git
+cd cloud-provider-gcp
+go build -ldflags="-w -s" -o=${BASE}/bin/plugins/auth-provider-gcp cmd/auth-provider-gcp/*.go

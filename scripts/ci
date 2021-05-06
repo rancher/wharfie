@@ -5,3 +5,4 @@ cd $(dirname $0)/..
 
 ./scripts/test
 ./scripts/build
+./scripts/build-plugins
