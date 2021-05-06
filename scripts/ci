@@ -2,17 +2,13 @@
 set -e -x
 
 cd $(dirname $0)/..
+. scripts/version
 
 ./scripts/test
 ./scripts/build
 ./scripts/build-plugins
 
 mkdir -p dist/artifacts
-ARCH=$(go env GOARCH)
-if [ ${ARCH} = armv7l ] || [ ${ARCH} = arm ]; then
-    ARCH="arm"
-fi
-
 for FILE in bin/wharfie bin/plugins/*; do
   cp ${FILE} dist/artifacts/$(basename $FILE)-${ARCH}
 done

@@ -1,8 +1,10 @@
 #!/bin/bash
-set -e
+set -e -x
+
+cd $(dirname $0)/..
+. scripts/version.sh
 
 ARCH=${ARCH:-amd64}
-VERSION=$(git describe --tags --dirty)
 VERSION_TAG="$(sed -e 's/+/-/g' <<< "$VERSION")"
 TAG=${TAG:-${VERSION_TAG}-${ARCH}}
 REPO=${REPO:-rancher}

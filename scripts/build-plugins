@@ -2,14 +2,11 @@
 set -e -x
 
 cd $(dirname $0)/..
+. scripts/version.sh
+
 BASE=$(pwd)
 LDFLAGS="-w -s"
 TAGS="netcgo osusergo static_build"
-ARCH=$(go env GOARCH)
-if [ ${ARCH} = armv7l ] || [ ${ARCH} = arm ]; then
-    export GOARCH="arm"
-    export GOARM="7"
-fi
 
 mkdir -p ${BASE}/build/plugins ${BASE}/bin/plugins
 
