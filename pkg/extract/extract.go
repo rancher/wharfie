@@ -46,10 +46,10 @@ func ExtractDirs(img v1.Image, dirs map[string]string, opts ...Option) error {
 	for s, d := range dirs {
 		var err error
 		if s != "/" {
-			s = strings.TrimRight(s, "/")
+			s = strings.TrimSuffix(s, "/")
 		}
 		if d != "/" {
-			d, err = filepath.Abs(strings.TrimRight(d, "/"))
+			d, err = filepath.Abs(strings.TrimSuffix(d, "/"))
 			if err != nil {
 				return errors.Wrap(err, "invalid destination")
 			}
@@ -149,7 +149,7 @@ func findPath(dirs map[string]string, path string) (string, error) {
 	}
 	for s := filepath.Dir(path); ; s = filepath.Dir(s) {
 		if d, ok := dirs[s]; ok {
-			j := filepath.Clean(filepath.Join(d, strings.TrimLeft(path, s)))
+			j := filepath.Clean(filepath.Join(d, strings.TrimPrefix(path, s)))
 			// Ensure that the path after cleaning does not escape the target prefix.
 			if !strings.HasPrefix(j, d) {
 				return "", ErrIllegalPath
