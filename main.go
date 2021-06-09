@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/pkg/errors"
 
@@ -63,6 +64,16 @@ func main() {
 		cli.BoolFlag{
 			Name:  "debug",
 			Usage: "Enable debug logging",
+		},
+		cli.StringFlag{
+			Name:  "arch",
+			Usage: "Override the machine architecture",
+			Value: runtime.GOARCH,
+		},
+		cli.StringFlag{
+			Name:  "os",
+			Usage: "Override the machine operating system",
+			Value: runtime.GOOS,
 		},
 	}
 
@@ -140,7 +151,10 @@ func run(clx *cli.Context) error {
 		multiKeychain := authn.NewMultiKeychain(kcs...)
 
 		logrus.Infof("Pulling image %s", image.Name())
-		img, err = remote.Image(registry.Rewrite(image), remote.WithAuthFromKeychain(multiKeychain), remote.WithTransport(registry))
+		img, err = remote.Image(registry.Rewrite(image),
+			remote.WithAuthFromKeychain(multiKeychain),
+			remote.WithTransport(registry),
+			remote.WithPlatform(v1.Platform{Architecture: clx.String("arch"), OS: clx.String("os")}))
 		if err != nil {
 			return errors.Wrapf(err, "failed to get image %s", image.Name())
 		}

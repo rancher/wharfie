@@ -15,6 +15,7 @@ import (
 
 var (
 	ErrIllegalPath = errors.New("illegal path")
+	ps             = string(os.PathSeparator)
 )
 
 // An Option modifies the default file extraction behavior
@@ -26,7 +27,7 @@ type options struct {
 
 // Extract extracts all content from the image to the provided path.
 func Extract(img v1.Image, dir string, opts ...Option) error {
-	dirs := map[string]string{"/": dir}
+	dirs := map[string]string{ps: dir}
 	return ExtractDirs(img, dirs, opts...)
 }
 
@@ -45,11 +46,11 @@ func ExtractDirs(img v1.Image, dirs map[string]string, opts ...Option) error {
 	cleanDirs := make(map[string]string, len(dirs))
 	for s, d := range dirs {
 		var err error
-		if s != "/" {
-			s = strings.TrimSuffix(s, "/")
+		if s != ps {
+			s = strings.TrimSuffix(s, ps)
 		}
-		if d != "/" {
-			d, err = filepath.Abs(strings.TrimSuffix(d, "/"))
+		if d != ps {
+			d, err = filepath.Abs(strings.TrimSuffix(d, ps))
 			if err != nil {
 				return errors.Wrap(err, "invalid destination")
 			}
@@ -144,9 +145,10 @@ func makeOptions(opts ...Option) (*options, error) {
 
 // findPath walks up the path, finding the longest match in the dirs map
 func findPath(dirs map[string]string, path string) (string, error) {
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
+	if !strings.HasPrefix(path, ps) {
+		path = ps + path
 	}
+
 	for s := filepath.Dir(path); ; s = filepath.Dir(s) {
 		if d, ok := dirs[s]; ok {
 			j := filepath.Clean(filepath.Join(d, strings.TrimPrefix(path, s)))
@@ -156,7 +158,7 @@ func findPath(dirs map[string]string, path string) (string, error) {
 			}
 			return j, nil
 		}
-		if s == "/" {
+		if s == ps {
 			return "", nil
 		}
 	}
