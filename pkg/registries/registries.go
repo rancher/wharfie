@@ -68,6 +68,7 @@ func (r *registry) Registry() *Registry {
 func (r *registry) Rewrite(ref name.Reference) name.Reference {
 	host := ref.Context().RegistryStr()
 	rewrites := r.getRewritesForHost(host)
+	registry := ref.Context().RegistryStr()
 	repository := ref.Context().RepositoryStr()
 
 	for pattern, replace := range rewrites {
@@ -77,7 +78,7 @@ func (r *registry) Rewrite(ref name.Reference) name.Reference {
 			continue
 		}
 		if rr := exp.ReplaceAllString(repository, replace); rr != repository {
-			newRepo, err := name.NewRepository(rr)
+			newRepo, err := name.NewRepository(registry + "/" + rr)
 			if err != nil {
 				logrus.Warnf("Invalid repository rewrite %s for %s", rr, host)
 				continue
