@@ -27,7 +27,7 @@ type options struct {
 
 // Extract extracts all content from the image to the provided path.
 func Extract(img v1.Image, dir string, opts ...Option) error {
-	dirs := map[string]string{ps: dir}
+	dirs := map[string]string{"/": dir}
 	return ExtractDirs(img, dirs, opts...)
 }
 
@@ -145,17 +145,24 @@ func makeOptions(opts ...Option) (*options, error) {
 
 // findPath walks up the path, finding the longest match in the dirs map
 func findPath(dirs map[string]string, path string) (string, error) {
+	// Standardizing the string to a path to accommodate OS.
+	path = filepath.FromSlash(path)
+
 	if !strings.HasPrefix(path, ps) {
 		path = ps + path
 	}
 
 	for s := filepath.Dir(path); ; s = filepath.Dir(s) {
-		if d, ok := dirs[s]; ok {
+		// s needs to be converted back to unix style path to find the key
+		if d, ok := dirs[filepath.ToSlash(s)]; ok {
 			j := filepath.Clean(filepath.Join(d, strings.TrimPrefix(path, s)))
+
 			// Ensure that the path after cleaning does not escape the target prefix.
 			if !strings.HasPrefix(j, d) {
 				return "", ErrIllegalPath
 			}
+
+			// j is where to extract to
 			return j, nil
 		}
 		if s == ps {
