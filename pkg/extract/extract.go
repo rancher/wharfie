@@ -101,20 +101,19 @@ func ExtractDirs(img v1.Image, dirs map[string]string, opts ...Option) error {
 			if err := f.Close(); err != nil {
 				return err
 			}
-		case tar.TypeLink:
-			target, err := findPath(cleanDirs, h.Linkname)
+		case tar.TypeSymlink:
+			logrus.Infof("Symlinking %s to %s", destination, h.Linkname)
+			_ = os.Remove(destination) // blind remove, if it fails the Symlink call will deal with it.
+			err := os.Symlink(h.Linkname, destination)
 			if err != nil {
-				return errors.Wrapf(err, "unable to create symlink %s", h.Name)
+				return err
 			}
-			if target != "" {
-				logrus.Infof("Creating symlink %s => %s", destination, target)
-				_ = os.Remove(destination) // blind remove, if it fails the Symlink call will deal with it.
-				err := os.Symlink(target, destination)
-				if err != nil {
-					return err
-				}
-			} else {
-				logrus.Debugf("Skipping symlink %s", h.Name)
+		case tar.TypeLink:
+			logrus.Infof("Linking %s to %s", destination, h.Linkname)
+			_ = os.Remove(destination) // blind remove, if it fails the Link call will deal with it.
+			err := os.Link(h.Linkname, destination)
+			if err != nil {
+				return err
 			}
 		default:
 			logrus.Warnf("Unhandled Typeflag %d for %s", h.Typeflag, h.Name)
