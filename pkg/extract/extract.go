@@ -91,6 +91,12 @@ func ExtractDirs(img v1.Image, dirs map[string]string, opts ...Option) error {
 		case tar.TypeReg:
 			logrus.Infof("Extracting file %s to %s", h.Name, destination)
 			mode := h.FileInfo().Mode() & opt.mode
+			if mode == 0 {
+				// images tarfiles created on Windows have empty mode bits, which when round-tripped
+				// results in creating files that are marked read-only. In this case, use the
+				// requested mode instead of masking.
+				mode = opt.mode
+			}
 			f, err := os.OpenFile(destination, os.O_RDWR|os.O_CREATE|os.O_TRUNC, mode)
 			if err != nil {
 				return err
