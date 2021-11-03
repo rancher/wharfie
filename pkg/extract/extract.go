@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"io"
 	"os"
+	tarpath "path"
 	"path/filepath"
 	"strings"
 
@@ -15,7 +16,8 @@ import (
 
 var (
 	ErrIllegalPath = errors.New("illegal path")
-	ps             = string(os.PathSeparator)
+	ps             = string(os.PathSeparator) // host path separator is OS dependent
+	ts             = "/"                      // tarfile path separator is always the same
 )
 
 // An Option modifies the default file extraction behavior
@@ -142,29 +144,26 @@ func makeOptions(opts ...Option) (*options, error) {
 	return o, nil
 }
 
-// findPath walks up the path, finding the longest match in the dirs map
+// findPath walks up the path, finding the longest match in the dirs map and returning the desired path.
 func findPath(dirs map[string]string, path string) (string, error) {
-	// Standardizing the string to a path to accommodate OS.
-	path = filepath.FromSlash(path)
-
-	if !strings.HasPrefix(path, ps) {
-		path = ps + path
+	if !strings.HasPrefix(path, ts) {
+		path = ts + path
 	}
 
-	for s := filepath.Dir(path); ; s = filepath.Dir(s) {
-		// s needs to be converted back to unix style path to find the key
-		if d, ok := dirs[filepath.ToSlash(s)]; ok {
-			j := filepath.Clean(filepath.Join(d, strings.TrimPrefix(path, s)))
+	// Depth-first walk up the path to find a matching entry in the map, until we hit the root path separator.
+	for source := path; ; source = tarpath.Dir(source) {
+		if destination, ok := dirs[source]; ok {
+			// Trim the source path prefix, replace it with the destination, and normalize the joined result.
+			joined := filepath.Clean(filepath.Join(destination, strings.TrimPrefix(path, source)))
 
 			// Ensure that the path after cleaning does not escape the target prefix.
-			if !strings.HasPrefix(j, d) {
+			if !strings.HasPrefix(joined, destination) {
 				return "", ErrIllegalPath
 			}
 
-			// j is where to extract to
-			return j, nil
+			return joined, nil
 		}
-		if s == ps {
+		if source == ts {
 			return "", nil
 		}
 	}
