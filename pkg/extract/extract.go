@@ -84,12 +84,12 @@ func ExtractDirs(img v1.Image, dirs map[string]string, opts ...Option) error {
 
 		switch h.Typeflag {
 		case tar.TypeDir:
+			logrus.Infof("Creating directory %s", destination)
 			if err := os.MkdirAll(destination, opt.mode); err != nil {
 				return err
 			}
 		case tar.TypeReg:
 			logrus.Infof("Extracting file %s to %s", h.Name, destination)
-
 			mode := h.FileInfo().Mode() & opt.mode
 			f, err := os.OpenFile(destination, os.O_RDWR|os.O_CREATE|os.O_TRUNC, mode)
 			if err != nil {
