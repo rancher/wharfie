@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -31,7 +32,7 @@ func main() {
 	app.Name = "wharfie"
 	app.Usage = "pulls and unpacks a container image to the local filesystem"
 	app.Description = "Supports K3s/RKE2 style repository rewrites, endpoint overrides, and auth configuration. Supports optional loading from local image tarballs or layer cache. Supports Kubelet credential provider plugins."
-	app.ArgsUsage = "<image> <destination>"
+	app.ArgsUsage = "<image> [<destination>|<source:destination>] [<source:destination>]"
 	app.Version = version
 	app.Action = run
 	app.Flags = []cli.Flag{
@@ -105,9 +106,25 @@ func run(clx *cli.Context) error {
 		return err
 	}
 
-	destination, err := filepath.Abs(os.ExpandEnv(clx.Args().Get(1)))
-	if err != nil {
-		return err
+	// destination is one or more bare local paths to extract to on the host, or
+	// image-path:local-path pairs if the content should be extracted to specific
+	// locations.
+	dirs := map[string]string{}
+	for i := 1; i < clx.NArg(); i++ {
+		var source, destination string
+		destination = clx.Args().Get(i)
+		parts := strings.SplitN(destination, ":", 2)
+		if len(parts) == 2 {
+			source, destination = parts[0], parts[1]
+		} else {
+			source, destination = "/", parts[0]
+		}
+		destination, err := filepath.Abs(os.ExpandEnv(destination))
+		if err != nil {
+			return err
+		}
+		logrus.Infof("Extract mapping %s => %s", source, destination)
+		dirs[source] = destination
 	}
 
 	if clx.IsSet("images-dir") {
@@ -170,5 +187,5 @@ func run(clx *cli.Context) error {
 		}
 	}
 
-	return extract.Extract(img, destination)
+	return extract.ExtractDirs(img, dirs)
 }
