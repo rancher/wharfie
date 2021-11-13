@@ -35,17 +35,15 @@ replace (
 
 require (
 	github.com/frankban/quicktest v1.12.1 // indirect
-	github.com/google/go-containerregistry v0.5.0
-	github.com/klauspost/compress v1.12.2
+	github.com/google/go-containerregistry v0.6.1-0.20211111182346-7a6ee45528a9
+	github.com/klauspost/compress v1.13.6
 	github.com/pierrec/lz4 v2.6.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
-	github.com/urfave/cli v1.22.2
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect
+	github.com/urfave/cli v1.22.4
+	go.uber.org/multierr v1.6.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.21.0 // indirect
-	k8s.io/apimachinery v0.18.8 // indirect
-	k8s.io/client-go v0.18.8 // indirect
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubernetes v1.21.0
 )

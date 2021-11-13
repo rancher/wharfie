@@ -101,7 +101,7 @@ func run(clx *cli.Context) error {
 		logrus.SetLevel(logrus.TraceLevel)
 	}
 
-	image, err := name.ParseReference(clx.Args().Get(0))
+	ref, err := name.ParseReference(clx.Args().Get(0))
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func run(clx *cli.Context) error {
 			return err
 		}
 
-		i, err := tarfile.FindImage(imagesDir, image)
+		i, err := tarfile.FindImage(imagesDir, ref)
 		if err != nil && !errors.Is(err, tarfile.ErrNotFound) {
 			return err
 		}
@@ -146,34 +146,26 @@ func run(clx *cli.Context) error {
 			return err
 		}
 
-		// Prefer registries.yaml auth config
-		kcs := []authn.Keychain{registry}
-
 		// Next check Kubelet image credential provider plugins, if configured
 		if clx.IsSet("image-credential-provider-config") && clx.IsSet("image-credential-provider-bin-dir") {
 			plugins, err := plugin.RegisterCredentialProviderPlugins(clx.String("image-credential-provider-config"), clx.String("image-credential-provider-bin-dir"))
 			if err != nil {
 				return err
 			}
-			kcs = append(kcs, plugins)
+			registry.DefaultKeychain = plugins
 		} else {
 			// The kubelet image credential provider plugin also falls back to checking legacy Docker credentials, so only
 			// explicitly set up the go-containerregistry DefaultKeychain if plugins are not configured.
 			// DefaultKeychain tries to read config from the home dir, and will error if HOME isn't set, so also gate on that.
 			if os.Getenv("HOME") != "" {
-				kcs = append(kcs, authn.DefaultKeychain)
+				registry.DefaultKeychain = authn.DefaultKeychain
 			}
 		}
 
-		multiKeychain := authn.NewMultiKeychain(kcs...)
-
-		logrus.Infof("Pulling image %s", image.Name())
-		img, err = remote.Image(registry.Rewrite(image),
-			remote.WithAuthFromKeychain(multiKeychain),
-			remote.WithTransport(registry),
-			remote.WithPlatform(v1.Platform{Architecture: clx.String("arch"), OS: clx.String("os")}))
+		logrus.Infof("Pulling image reference %s", ref.Name())
+		img, err = registry.Image(ref, remote.WithPlatform(v1.Platform{Architecture: clx.String("arch"), OS: clx.String("os")}))
 		if err != nil {
-			return errors.Wrapf(err, "failed to get image %s", image.Name())
+			return errors.Wrapf(err, "failed to get image reference %s", ref.Name())
 		}
 
 		if clx.Bool("cache") {
