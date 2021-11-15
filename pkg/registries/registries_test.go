@@ -175,6 +175,20 @@ func TestEndpoints(t *testing.T) {
 				{url: mustParseURL("https://index.docker.io/v2")},
 			},
 		},
+		{ // local registry with only the default endpoint
+			imageName: "registry.example.com/busybox",
+			expected: []endpoint{
+				{url: mustParseURL("https://registry.example.com/v2")},
+			},
+		},
+		{ // local registry with custom endpoint
+			imageName: "registry.example.com/busybox",
+			mirrors:   msm{"registry.example.com": Mirror{Endpoints: []string{"http://registry.example.com:5000/v2"}}},
+			expected: []endpoint{
+				{url: mustParseURL("http://registry.example.com:5000/v2")},
+				{url: mustParseURL("https://registry.example.com/v2")},
+			},
+		},
 		{ // config, but not for the registry we're pulling from
 			imageName: "busybox",
 			mirrors:   msm{"registry.example.com": Mirror{Endpoints: []string{"https://registry.example.com/v2"}}},
