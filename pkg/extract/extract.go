@@ -74,6 +74,7 @@ func ExtractDirs(img v1.Image, dirs map[string]string, opts ...Option) error {
 		}
 
 		destination, err := findPath(cleanDirs, h.Name)
+		parent := filepath.Dir(destination)
 		if err != nil {
 			return errors.Wrapf(err, "unable to extract file %s", h.Name)
 		}
@@ -97,6 +98,9 @@ func ExtractDirs(img v1.Image, dirs map[string]string, opts ...Option) error {
 				// requested mode instead of masking.
 				mode = opt.mode
 			}
+			if err := os.MkdirAll(parent, opt.mode); err != nil {
+				return err
+			}
 			f, err := os.OpenFile(destination, os.O_RDWR|os.O_CREATE|os.O_TRUNC, mode)
 			if err != nil {
 				return err
@@ -111,15 +115,29 @@ func ExtractDirs(img v1.Image, dirs map[string]string, opts ...Option) error {
 			}
 		case tar.TypeSymlink:
 			logrus.Infof("Symlinking %s to %s", destination, h.Linkname)
+			if err := os.MkdirAll(parent, opt.mode); err != nil {
+				return err
+			}
 			_ = os.Remove(destination) // blind remove, if it fails the Symlink call will deal with it.
 			err := os.Symlink(h.Linkname, destination)
 			if err != nil {
 				return err
 			}
 		case tar.TypeLink:
-			logrus.Infof("Linking %s to %s", destination, h.Linkname)
+			linkname, err := findPath(cleanDirs, h.Linkname)
+			if err != nil {
+				return errors.Wrapf(err, "unable to find target for hardlink %s", destination)
+			}
+			if linkname == "" {
+				logrus.Warnf("Skipping hardlink %s, target was skipped", destination)
+				continue
+			}
+			logrus.Infof("Linking %s to %s", destination, linkname)
+			if err := os.MkdirAll(parent, opt.mode); err != nil {
+				return err
+			}
 			_ = os.Remove(destination) // blind remove, if it fails the Link call will deal with it.
-			err := os.Link(h.Linkname, destination)
+			err = os.Link(linkname, destination)
 			if err != nil {
 				return err
 			}
