@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"io"
 	"os"
-	tarpath "path"
 	"path/filepath"
 	"strings"
 
@@ -16,8 +15,7 @@ import (
 
 var (
 	ErrIllegalPath = errors.New("illegal path")
-	ps             = string(os.PathSeparator) // host path separator is OS dependent
-	ts             = "/"                      // tarfile path separator is always the same
+	ps             = string(os.PathSeparator)
 )
 
 // An Option modifies the default file extraction behavior
@@ -42,22 +40,9 @@ func ExtractDirs(img v1.Image, dirs map[string]string, opts ...Option) error {
 		return err
 	}
 
-	// Clean the directory map to ensure that source and destination reliably do
-	// not have trailing slashes, unless the path is root. This is required to
-	// make directory name matching reliable while walking up the source path.
-	cleanDirs := make(map[string]string, len(dirs))
-	for s, d := range dirs {
-		var err error
-		if s != ps {
-			s = strings.TrimSuffix(s, ps)
-		}
-		if d != ps {
-			d, err = filepath.Abs(strings.TrimSuffix(d, ps))
-			if err != nil {
-				return errors.Wrap(err, "invalid destination")
-			}
-		}
-		cleanDirs[s] = d
+	cleanDirs, err := cleanExtractDirs(dirs)
+	if err != nil {
+		return err
 	}
 
 	reader := mutate.Extract(img)
@@ -168,14 +153,35 @@ func makeOptions(opts ...Option) (*options, error) {
 	return o, nil
 }
 
+// cleanExtractDirs normalizes the directory map to ensure that source and destination
+// reliably do not have trailing slashes, unless the path is root.  This is required to
+// make directory name matching reliable while walking up the source path.
+func cleanExtractDirs(dirs map[string]string) (map[string]string, error) {
+	cleanDirs := make(map[string]string, len(dirs))
+	for s, d := range dirs {
+		if s != ps {
+			s = filepath.Clean(strings.TrimSuffix(s, ps))
+		}
+		if d != ps {
+			var err error
+			d, err = filepath.Abs(strings.TrimSuffix(d, ps))
+			if err != nil {
+				return nil, errors.Wrap(err, "invalid destination")
+			}
+		}
+		cleanDirs[s] = d
+	}
+	return cleanDirs, nil
+}
+
 // findPath walks up the path, finding the longest match in the dirs map and returning the desired path.
 func findPath(dirs map[string]string, path string) (string, error) {
-	if !strings.HasPrefix(path, ts) {
-		path = ts + path
+	if !strings.HasPrefix(path, ps) {
+		path = ps + path
 	}
 
 	// Depth-first walk up the path to find a matching entry in the map, until we hit the root path separator.
-	for source := path; ; source = tarpath.Dir(source) {
+	for source := path; ; source = filepath.Dir(source) {
 		if destination, ok := dirs[source]; ok {
 			// Trim the source path prefix, replace it with the destination, and normalize the joined result.
 			joined := filepath.Clean(filepath.Join(destination, strings.TrimPrefix(path, source)))
@@ -187,7 +193,7 @@ func findPath(dirs map[string]string, path string) (string, error) {
 
 			return joined, nil
 		}
-		if source == ts {
+		if source == ps {
 			return "", nil
 		}
 	}
