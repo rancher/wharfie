@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"regexp"
 	"time"
 
@@ -171,6 +172,15 @@ func (r *registry) getEndpoints(ref name.Reference) ([]endpoint, error) {
 				if endpointURL.Host == "" {
 					logrus.Warnf("Ignoring endpoint URL without host for registry %s: %q", registry, endpointStr)
 					continue
+				}
+				if endpointURL.Scheme == "" {
+					logrus.Warnf("Ignoring endpoint URL without scheme for registry %s: %q", registry, endpointStr)
+					continue
+				}
+				if endpointURL.Path == "" {
+					endpointURL.Path = "/v2"
+				} else {
+					endpointURL.Path = path.Clean(endpointURL.Path)
 				}
 				endpoints = append(endpoints, r.makeEndpoint(endpointURL, ref))
 			}
