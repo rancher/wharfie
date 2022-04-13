@@ -46,8 +46,8 @@ func (e endpoint) RoundTrip(req *http.Request) (*http.Response, error) {
 	// and endpoint.  We might have been redirected to a different URL as part of the auth
 	// workflow, and must not rewrite URLs if that's the case.
 	if req.URL.Host == e.ref.Context().RegistryStr() && strings.HasPrefix(req.URL.Path, "/v2") {
-		// The default base path is /v2/; if a path is included in the endpoint,
-		// replace the /v2/ prefix from the request path with the endpoint path.
+		// The default base path is /v2; if a path is included in the endpoint,
+		// replace the /v2 prefix from the request path with the endpoint path.
 		// This behavior is cribbed from containerd.
 		if endpointURL.Path != "" {
 			req.URL.Path = endpointURL.Path + strings.TrimPrefix(req.URL.Path, "/v2")
