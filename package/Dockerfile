@@ -1,4 +1,4 @@
-FROM alpine:3.12 AS base
+FROM alpine:3.15 AS base
 RUN apk add -U ca-certificates
 RUN mkdir -p /image/etc/ssl/certs /image/bin && \
     cp /etc/ssl/certs/ca-certificates.crt /image/etc/ssl/certs/ca-certificates.crt
