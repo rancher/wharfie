@@ -123,9 +123,12 @@ func (r *registry) getTransport(endpointURL *url.URL) http.RoundTripper {
 				Proxy: http.ProxyFromEnvironment,
 				DialContext: (&net.Dialer{
 					// By default we wrap the transport in retries, so reduce the
-					// default dial timeout to 5s to avoid 5x 30s of connection
+					// default dial timeout to 16s to avoid 5x 30s of connection
 					// timeouts when doing the "ping" on certain http registries.
-					Timeout:   5 * time.Second,
+					// Note that the DNS failover timeout is 5 seconds; we must keep the dial
+					// timeout above 15 seconds to allow resolution to fail over through up to
+					// 3 backup nameservers.
+					Timeout:   16 * time.Second,
 					KeepAlive: 30 * time.Second,
 				}).DialContext,
 				TLSClientConfig:       tlsConfig,
