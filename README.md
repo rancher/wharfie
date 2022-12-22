@@ -42,4 +42,4 @@ with a sample config file at `/etc/config.yaml`.
 More information is available at:
 * https://github.com/kubernetes/cloud-provider-aws/tree/master/cmd/ecr-credential-provider
 * https://github.com/kubernetes/cloud-provider-gcp/tree/master/cmd/auth-provider-gcp
-* https://github.com/kubernetes-sigs/cloud-provider-azure/issues/289
+* https://github.com/kubernetes-sigs/cloud-provider-azure/tree/master/cmd/acr-credential-provider

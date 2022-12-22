@@ -11,11 +11,16 @@ TAGS="netcgo osusergo static_build"
 mkdir -p ${BASE}/build/plugins ${BASE}/bin/plugins
 
 cd ${BASE}/build/plugins
-git clone -b v1.23.0 --depth 1 https://github.com/kubernetes/cloud-provider-aws.git
+git clone -b v1.26.0 --depth 1 https://github.com/kubernetes/cloud-provider-aws.git
 cd cloud-provider-aws
 CGO_ENABLED=0 go build -v -tags="$TAGS" -ldflags="$LDFLAGS" -o=${BASE}/bin/plugins/ecr-credential-provider cmd/ecr-credential-provider/*.go
 
 cd ${BASE}/build/plugins
-git clone -b providers/v0.21.1 --depth 1 https://github.com/kubernetes/cloud-provider-gcp.git
+git clone -b providers/v0.25.5 --depth 1 https://github.com/kubernetes/cloud-provider-gcp.git
 cd cloud-provider-gcp
 CGO_ENABLED=0 go build -v -tags "$TAGS" -ldflags "$LDFLAGS" -o=${BASE}/bin/plugins/auth-provider-gcp cmd/auth-provider-gcp/*.go
+
+cd ${BASE}/build/plugins
+git clone -b v1.26.0 --depth 1 https://github.com/kubernetes-sigs/cloud-provider-azure.git
+cd cloud-provider-azure
+CGO_ENABLED=0 go build -v -tags "$TAGS" -ldflags "$LDFLAGS" -o=${BASE}/bin/plugins/acr-credential-provider cmd/acr-credential-provider/*.go
