@@ -1,6 +1,6 @@
 module github.com/rancher/wharfie
 
-go 1.16
+go 1.19
 
 replace (
 	k8s.io/api => github.com/k3s-io/kubernetes/staging/src/k8s.io/api v1.21.0-k3s1
@@ -34,7 +34,6 @@ replace (
 )
 
 require (
-	github.com/frankban/quicktest v1.12.1 // indirect
 	github.com/google/go-containerregistry v0.7.0
 	github.com/klauspost/compress v1.13.6
 	github.com/pierrec/lz4 v2.6.0+incompatible
@@ -43,7 +42,49 @@ require (
 	github.com/urfave/cli v1.22.4
 	go.uber.org/multierr v1.6.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.21.0 // indirect
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubernetes v1.21.0
+)
+
+require (
+	github.com/containerd/stargz-snapshotter/estargz v0.10.0 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/docker/cli v20.10.10+incompatible // indirect
+	github.com/docker/distribution v2.7.1+incompatible // indirect
+	github.com/docker/docker v20.10.10+incompatible // indirect
+	github.com/docker/docker-credential-helpers v0.6.4 // indirect
+	github.com/frankban/quicktest v1.12.1 // indirect
+	github.com/go-logr/logr v0.4.0 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/google/go-cmp v0.5.6 // indirect
+	github.com/google/gofuzz v1.1.0 // indirect
+	github.com/hashicorp/golang-lru v0.5.1 // indirect
+	github.com/json-iterator/go v1.1.11 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/opencontainers/go-digest v1.0.0 // indirect
+	github.com/opencontainers/image-spec v1.0.2-0.20210730191737-8e42a01fb1b7 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/vbatts/tar-split v0.11.2 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
+	golang.org/x/net v0.0.0-20211111160137-58aab5ef257a // indirect
+	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
+	golang.org/x/sys v0.0.0-20211110154304-99a53858aa08 // indirect
+	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d // indirect
+	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
+	google.golang.org/appengine v1.6.7 // indirect
+	google.golang.org/protobuf v1.27.1 // indirect
+	gopkg.in/inf.v0 v0.9.1 // indirect
+	k8s.io/api v0.21.0 // indirect
+	k8s.io/apimachinery v0.20.6 // indirect
+	k8s.io/client-go v0.20.6 // indirect
+	k8s.io/component-base v0.20.6 // indirect
+	k8s.io/kubelet v0.0.0 // indirect
+	k8s.io/utils v0.0.0-20201110183641-67b214c5f920 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.1.0 // indirect
+	sigs.k8s.io/yaml v1.2.0 // indirect
 )
