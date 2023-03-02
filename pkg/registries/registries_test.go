@@ -87,14 +87,14 @@ func TestRewrite(t *testing.T) {
 				"registry.local/test": "registry.local/test:latest",
 			},
 		},
-		{ // rewrite k8s.gcr.io to prefix "k8s.gcr.io/"
-			registry: "k8s.gcr.io",
+		{ // rewrite registry.k8s.io to prefix "registry.k8s.io/"
+			registry: "registry.k8s.io",
 			rewrites: mss{
-				"(.*)": "k8s.gcr.io/$1",
+				"(.*)": "registry.k8s.io/$1",
 			},
 			imageNames: mss{
-				"busybox":              "index.docker.io/library/busybox:latest",
-				"k8s.gcr.io/pause:3.2": "k8s.gcr.io/k8s.gcr.io/pause:3.2",
+				"busybox":                   "index.docker.io/library/busybox:latest",
+				"registry.k8s.io/pause:3.2": "registry.k8s.io/registry.k8s.io/pause:3.2",
 			},
 		},
 		{ // rewrite without a trailing slash
