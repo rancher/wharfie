@@ -92,7 +92,13 @@ platform:
   os: linux
   arch: arm
 
+clone:
+  disable: true
+
 steps:
+- name: clone
+  image: drone/git:latest-arm
+  
 - name: build
   image: rancher/dapper:v0.5.0
   commands:
