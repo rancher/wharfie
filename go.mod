@@ -38,11 +38,12 @@ require (
 	github.com/klauspost/compress v1.15.11
 	github.com/pierrec/lz4 v2.6.0+incompatible
 	github.com/pkg/errors v0.9.1
+	github.com/rancher/dynamiclistener v0.3.5
 	github.com/sirupsen/logrus v1.9.0
 	github.com/urfave/cli v1.22.4
 	go.uber.org/multierr v1.6.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/klog/v2 v2.8.0
+	k8s.io/klog/v2 v2.80.1
 	k8s.io/kubernetes v1.21.0
 )
 
@@ -55,16 +56,16 @@ require (
 	github.com/docker/docker v20.10.20+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/frankban/quicktest v1.12.1 // indirect
-	github.com/go-logr/logr v0.4.0 // indirect
+	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
-	github.com/google/gofuzz v1.1.0 // indirect
-	github.com/hashicorp/golang-lru v0.5.1 // indirect
-	github.com/json-iterator/go v1.1.11 // indirect
+	github.com/google/gofuzz v1.2.0 // indirect
+	github.com/hashicorp/golang-lru v0.5.3 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc2 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
@@ -85,7 +86,7 @@ require (
 	k8s.io/client-go v0.20.6 // indirect
 	k8s.io/component-base v0.20.6 // indirect
 	k8s.io/kubelet v0.0.0 // indirect
-	k8s.io/utils v0.0.0-20201110183641-67b214c5f920 // indirect
+	k8s.io/utils v0.0.0-20221011040102-427025108f67 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.0 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
