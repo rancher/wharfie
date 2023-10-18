@@ -1,6 +1,6 @@
 module github.com/rancher/wharfie
 
-go 1.19
+go 1.20
 
 replace (
 	k8s.io/api => github.com/k3s-io/kubernetes/staging/src/k8s.io/api v1.21.0-k3s1
