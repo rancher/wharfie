@@ -8,7 +8,7 @@ platform:
 
 steps:
 - name: build
-  image: rancher/dapper:v0.5.0
+  image: rancher/dapper:v0.6.0
   commands:
   - dapper ci
   volumes:
@@ -16,7 +16,7 @@ steps:
     path: /var/run/docker.sock
 
 - name: github_binary_release
-  image: ibuildthecloud/github-release:v0.0.1
+  image: plugins/github-release
   settings:
     api_key:
       from_secret: github_token
@@ -51,7 +51,7 @@ platform:
 
 steps:
 - name: build
-  image: rancher/dapper:v0.5.0
+  image: rancher/dapper:v0.6.0
   commands:
   - dapper ci
   volumes:
@@ -59,7 +59,7 @@ steps:
     path: /var/run/docker.sock
 
 - name: github_binary_release
-  image: ibuildthecloud/github-release:v0.0.1
+  image: plugins/github-release
   settings:
     api_key:
       from_secret: github_token
