@@ -98,6 +98,9 @@ func TestEndpoint(t *testing.T) {
 				DefaultKeychain: authn.DefaultKeychain,
 				Registry: &Registry{
 					Mirrors: map[string]Mirror{
+						defaultRegistry: Mirror{
+							Endpoints: []string{regEndpoint},
+						},
 						regHost: Mirror{
 							Endpoints: []string{regEndpoint},
 						},
@@ -117,7 +120,10 @@ func TestEndpoint(t *testing.T) {
 				r.Registry.Configs[authHost] = RegistryConfig{TLS: &TLSConfig{InsecureSkipVerify: true}}
 			}
 
-			imageRefs := []string{regHost + "/library/busybox:latest"}
+			imageRefs := []string{
+				defaultRegistry + "/library/busybox:latest",
+				regHost + "/library/busybox:latest",
+			}
 
 			// When using the default port for a scheme, confirm that the image can be pulled from the bare hostname,
 			// even if the port was explicitly included in the registry config.
@@ -227,7 +233,7 @@ func newServers(t *testing.T, registryAddress string, registryTLS bool, authTLS 
 // getHostEndpoint returns both the bare request host value, and the endpoint URL, for the given address.
 // If tls is true, the scheme is https, otherwise http.
 // If explicitPort is true, the port will be included in the host value, even if it would not
-// normally be included due to being the default port for the scheme. The port is always inlcuded
+// normally be included due to being the default port for the scheme. The port is always included
 // if it is not the default port for the scheme.
 func getHostEndpoint(addr string, tls, explicitPort bool) (string, string) {
 	_, port, _ := net.SplitHostPort(addr)

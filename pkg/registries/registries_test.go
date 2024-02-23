@@ -1,14 +1,15 @@
 package registries
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/url"
-	"reflect"
 	"testing"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRewrite(t *testing.T) {
@@ -147,15 +148,11 @@ func TestRewrite(t *testing.T) {
 
 			for source, dest := range test.imageNames {
 				originalRef, err := name.ParseReference(source)
-				if err != nil {
-					t.Fatalf("FATAL: Failed to parse source reference: %v", err)
-				}
+				assert.NoError(t, err, "Failed to parse source reference %s", source)
+
 				rewriteRef := registry.rewrite(originalRef)
-				if rewriteRef.Name() != dest {
-					t.Fatalf("FATAL: Bad rewrite for %s as %s - got %s, wanted %s", source, originalRef.Name(), rewriteRef.Name(), dest)
-				} else {
-					t.Logf("INFO:   OK rewrite for %s as %s - got %s", source, originalRef.Name(), rewriteRef.Name())
-				}
+				assert.Equal(t, dest, rewriteRef.Name(), "Bad rewrite for %s as %s", source, originalRef.Name())
+				t.Logf("OK rewrite for %s as %s - got %s", source, originalRef.Name(), rewriteRef.Name())
 			}
 		})
 	}
@@ -166,27 +163,60 @@ func TestEndpoints(t *testing.T) {
 	type msm map[string]Mirror
 
 	endpointTests := map[string]struct {
-		imageName string
-		configs   msr
-		mirrors   msm
-		expected  []endpoint
+		imageName  string
+		configs    msr
+		mirrors    msm
+		endpoints  []endpoint
+		tlsconfigs []*tls.Config
 	}{
 		"no config, default endpoint": {
 			imageName: "busybox",
-			expected: []endpoint{
+			endpoints: []endpoint{
 				{url: mustParseURL("https://index.docker.io/v2")},
 			},
 		},
 		"local registry with only the default endpoint": {
 			imageName: "registry.example.com/busybox",
-			expected: []endpoint{
+			endpoints: []endpoint{
 				{url: mustParseURL("https://registry.example.com/v2")},
+			},
+		},
+		"local registry with TLS verification disabled": {
+			imageName: "registry.example.com/busybox",
+			configs:   msr{"registry.example.com": RegistryConfig{TLS: &TLSConfig{InsecureSkipVerify: true}}},
+			endpoints: []endpoint{
+				{url: mustParseURL("https://registry.example.com/v2")},
+			},
+			tlsconfigs: []*tls.Config{
+				{InsecureSkipVerify: true},
+			},
+		},
+		"local registry with TLS verification disabled in wildcard": {
+			imageName: "registry.example.com/busybox",
+			configs:   msr{"*": RegistryConfig{TLS: &TLSConfig{InsecureSkipVerify: true}}},
+			endpoints: []endpoint{
+				{url: mustParseURL("https://registry.example.com/v2")},
+			},
+			tlsconfigs: []*tls.Config{
+				{InsecureSkipVerify: true},
+			},
+		},
+		"local registry with TLS verification disabled in wildcard but not for this registry": {
+			imageName: "registry.example.com/busybox",
+			configs: msr{
+				"*":                    RegistryConfig{TLS: &TLSConfig{InsecureSkipVerify: true}},
+				"registry.example.com": RegistryConfig{}},
+			endpoints: []endpoint{
+				{url: mustParseURL("https://registry.example.com/v2")},
+			},
+			tlsconfigs: []*tls.Config{
+				{InsecureSkipVerify: false},
 			},
 		},
 		"local registry with custom endpoint": {
 			imageName: "registry.example.com/busybox",
 			mirrors:   msm{"registry.example.com": Mirror{Endpoints: []string{"http://registry.example.com:5000/v2"}}},
-			expected: []endpoint{
+			endpoints: []endpoint{
 				{url: mustParseURL("http://registry.example.com:5000/v2")},
 				{url: mustParseURL("https://registry.example.com/v2")},
 			},
@@ -194,7 +224,7 @@ func TestEndpoints(t *testing.T) {
 		"local registry with custom endpoint with trailing slash": {
 			imageName: "registry.example.com/busybox",
 			mirrors:   msm{"registry.example.com": Mirror{Endpoints: []string{"http://registry.example.com:5000/v2/"}}},
-			expected: []endpoint{
+			endpoints: []endpoint{
 				{url: mustParseURL("http://registry.example.com:5000/v2")},
 				{url: mustParseURL("https://registry.example.com/v2")},
 			},
@@ -202,14 +232,14 @@ func TestEndpoints(t *testing.T) {
 		"config, but not for the registry we're pulling from": {
 			imageName: "busybox",
 			mirrors:   msm{"registry.example.com": Mirror{Endpoints: []string{"https://registry.example.com/v2"}}},
-			expected: []endpoint{
+			endpoints: []endpoint{
 				{url: mustParseURL("https://index.docker.io/v2")},
 			},
 		},
 		"config for docker.io, plus default endpoint": {
 			imageName: "busybox",
 			mirrors:   msm{"docker.io": Mirror{Endpoints: []string{"https://docker.example.com/v2"}}},
-			expected: []endpoint{
+			endpoints: []endpoint{
 				{url: mustParseURL("https://docker.example.com/v2")},
 				{url: mustParseURL("https://index.docker.io/v2")},
 			},
@@ -217,7 +247,7 @@ func TestEndpoints(t *testing.T) {
 		"multiple endpoints for docker.io, plus default endpoint": {
 			imageName: "busybox",
 			mirrors:   msm{"docker.io": Mirror{Endpoints: []string{"https://docker1.example.com/v2", "https://docker2.example.com/v2"}}},
-			expected: []endpoint{
+			endpoints: []endpoint{
 				{url: mustParseURL("https://docker1.example.com/v2")},
 				{url: mustParseURL("https://docker2.example.com/v2")},
 				{url: mustParseURL("https://index.docker.io/v2")},
@@ -226,7 +256,7 @@ func TestEndpoints(t *testing.T) {
 		"wildcard registry plus default": {
 			imageName: "busybox",
 			mirrors:   msm{"*": Mirror{Endpoints: []string{"https://registry.example.com/v2"}}},
-			expected: []endpoint{
+			endpoints: []endpoint{
 				{url: mustParseURL("https://registry.example.com/v2")},
 				{url: mustParseURL("https://index.docker.io/v2")},
 			},
@@ -237,7 +267,7 @@ func TestEndpoints(t *testing.T) {
 				"*":         Mirror{Endpoints: []string{"https://registry.example.com/v2"}},
 				"docker.io": Mirror{Endpoints: []string{"https://docker.example.com/v2"}},
 			},
-			expected: []endpoint{
+			endpoints: []endpoint{
 				{url: mustParseURL("https://docker.example.com/v2")},
 				{url: mustParseURL("https://index.docker.io/v2")},
 			},
@@ -245,7 +275,7 @@ func TestEndpoints(t *testing.T) {
 		"confirm that bad URLs are skipped": {
 			imageName: "busybox",
 			mirrors:   msm{"docker.io": Mirror{Endpoints: []string{"https://docker1.example.com/v2", "https://user:bad{@docker2.example.com"}}},
-			expected: []endpoint{
+			endpoints: []endpoint{
 				{url: mustParseURL("https://docker1.example.com/v2")},
 				{url: mustParseURL("https://index.docker.io/v2")},
 			},
@@ -253,22 +283,48 @@ func TestEndpoints(t *testing.T) {
 		"confirm that relative URLs are skipped": {
 			imageName: "busybox",
 			mirrors:   msm{"docker.io": Mirror{Endpoints: []string{"https://docker1.example.com/v2", "docker2.example.com/v2", "/v2"}}},
-			expected: []endpoint{
+			endpoints: []endpoint{
 				{url: mustParseURL("https://docker1.example.com/v2")},
+				{url: mustParseURL("https://docker2.example.com/v2")},
 				{url: mustParseURL("https://index.docker.io/v2")},
 			},
 		},
-		"confirm that endpoints missing scheme are skipped": {
+		"confirm that endpoints missing scheme are not skipped": {
 			imageName: "registry.example.com/busybox",
 			mirrors:   msm{"registry.example.com": Mirror{Endpoints: []string{"registry.example.com:5000/v2"}}},
-			expected: []endpoint{
+			endpoints: []endpoint{
+				{url: mustParseURL("https://registry.example.com:5000/v2")},
 				{url: mustParseURL("https://registry.example.com/v2")},
+			},
+		},
+		"confirm that localhost with odd ports uses http": {
+			imageName: "localhost:5000/busybox",
+			endpoints: []endpoint{
+				{url: mustParseURL("http://localhost:5000/v2")},
+			},
+		},
+		"confirm that localhost with https port uses https": {
+			imageName: "localhost:443/busybox",
+			endpoints: []endpoint{
+				{url: mustParseURL("https://localhost:443/v2")},
+			},
+		},
+		"confirm that loopback with odd ports uses http": {
+			imageName: "127.0.0.1:5000/busybox",
+			endpoints: []endpoint{
+				{url: mustParseURL("http://127.0.0.1:5000/v2")},
+			},
+		},
+		"confirm that loopback with https port uses https": {
+			imageName: "127.0.0.1:443/busybox",
+			endpoints: []endpoint{
+				{url: mustParseURL("https://127.0.0.1:443/v2")},
 			},
 		},
 		"confirm that creds are used for the default endpoint": {
 			imageName: "busybox",
 			configs:   msr{"docker.io": RegistryConfig{Auth: &AuthConfig{Username: "user", Password: "pass"}}},
-			expected: []endpoint{
+			endpoints: []endpoint{
 				{
 					url:  mustParseURL("https://index.docker.io/v2"),
 					auth: &authn.Basic{Username: "user", Password: "pass"},
@@ -279,7 +335,7 @@ func TestEndpoints(t *testing.T) {
 			imageName: "busybox",
 			mirrors:   msm{"docker.io": Mirror{Endpoints: []string{"https://docker1.example.com/v2"}}},
 			configs:   msr{"docker1.example.com": RegistryConfig{Auth: &AuthConfig{Username: "user", Password: "pass"}}},
-			expected: []endpoint{
+			endpoints: []endpoint{
 				{
 					url:  mustParseURL("https://docker1.example.com/v2"),
 					auth: &authn.Basic{Username: "user", Password: "pass"},
@@ -289,11 +345,26 @@ func TestEndpoints(t *testing.T) {
 				},
 			},
 		},
+		"confirm that creds are used from wildcard config": {
+			imageName: "busybox",
+			mirrors:   msm{"*": Mirror{Endpoints: []string{"https://registry.example.com/v2"}}},
+			configs:   msr{"*": RegistryConfig{Auth: &AuthConfig{Username: "user", Password: "pass"}}},
+			endpoints: []endpoint{
+				{
+					url:  mustParseURL("https://registry.example.com/v2"),
+					auth: &authn.Basic{Username: "user", Password: "pass"},
+				},
+				{
+					url:  mustParseURL("https://index.docker.io/v2"),
+					auth: &authn.Basic{Username: "user", Password: "pass"},
+				},
+			},
+		},
 		"confirm that non-default schemes and ports are honored for mirrors and configs": {
 			imageName: "busybox",
 			mirrors:   msm{"docker.io": Mirror{Endpoints: []string{"http://docker1.example.com:5000/v2"}}},
 			configs:   msr{"docker1.example.com:5000": RegistryConfig{Auth: &AuthConfig{Username: "user", Password: "pass"}}},
-			expected: []endpoint{
+			endpoints: []endpoint{
 				{
 					url:  mustParseURL("http://docker1.example.com:5000/v2"),
 					auth: &authn.Basic{Username: "user", Password: "pass"},
@@ -316,34 +387,37 @@ func TestEndpoints(t *testing.T) {
 			}
 
 			ref, err := name.ParseReference(test.imageName)
-			if err != nil {
-				t.Fatalf("FATAL: Failed to parse test refrence: %v", err)
-			}
+			assert.NoError(t, err, "Failed to parse test reference for %v", test.imageName)
 
 			endpoints, err := registry.getEndpoints(ref)
-			if err != nil {
-				t.Fatalf("FATAL: Failed to get endpoints for %s: %v", ref, err)
+			assert.NoError(t, err, "Failed to get endpoints for %s", ref)
+
+			// Compare endpoint URLs
+			var expectedURLs, endpointURLs []string
+			for _, e := range test.endpoints {
+				expectedURLs = append(expectedURLs, e.url.String())
 			}
-			if expected, got := len(test.expected), len(endpoints); expected != got {
-				t.Fatalf("FATAL: Expected %d endpoints, got %d", expected, got)
+			for _, e := range endpoints {
+				endpointURLs = append(endpointURLs, e.url.String())
 			}
+			assert.Equal(t, expectedURLs, endpointURLs, "Unexpected endpoints for %s", ref)
+
 			for i, endpoint := range endpoints {
-				if test.expected[i].url.String() != endpoint.url.String() {
-					t.Fatalf("FATAL: Expected endpoint[%d] url %v, got %v", i, test.expected[i].url, endpoint.url)
+				// Compare endpoint auths
+				if i < len(test.endpoints) {
+					expectedAuth, err := getAuthConfig(test.endpoints[i], ref)
+					assert.NoError(t, err, "Failed to get auth for expected endpoint %d for %s", i, ref)
+
+					epAuth, err := getAuthConfig(endpoint, ref)
+					assert.NoError(t, err, "Failed to get auth for test endpoint %d for %s", i, ref)
+					assert.Equal(t, expectedAuth, epAuth, "Unexpected auth for endpoint %d for %s", i, ref)
 				}
 
-				expectedAuth, err := getAuthConfig(test.expected[i], ref)
-				if err != nil {
-					t.Fatalf("FATAL: Failed to get auth for expected endpoint: %v", err)
-				}
-
-				epAuth, err := getAuthConfig(endpoint, ref)
-				if err != nil {
-					t.Fatalf("FATAL: Failed to get auth for test endpoint: %v", err)
-				}
-
-				if !reflect.DeepEqual(expectedAuth, epAuth) {
-					t.Fatalf("FATAL: Expected endpoint[%d] auth %#v, got %#v", i, expectedAuth, epAuth)
+				// Compare endpoint TLS
+				if i < len(test.tlsconfigs) {
+					tlsConfig, err := registry.getTLSConfig(endpoint.url)
+					assert.NoError(t, err, "Failed to get tlsconfig for test endpoint %d for %s", i, ref)
+					assert.Equal(t, test.tlsconfigs[i], tlsConfig, "Unexpected tlsconfig for endpoint %d for %s", i, ref)
 				}
 			}
 		})
