@@ -10,7 +10,7 @@ cd $(dirname $0)/..
 
 mkdir -p dist/artifacts
 
-for FILE in bin/wharfie bin/plugins/*; do
+for FILE in bin/wharfie* bin/plugins/*; do
   cp ${FILE} dist/artifacts/$(basename $FILE)
 done
 
