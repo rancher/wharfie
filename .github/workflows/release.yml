@@ -1,0 +1,30 @@
+on:
+  push:
+    tags:
+    - "v*"
+
+name: Release
+permissions:
+    contents: write
+    id-token: write
+jobs:
+  release-cross-arch:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Cross Arch Build
+      run: |
+        make ci
+      env:
+        CROSS: "true"
+
+    - name: release binaries
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          dist/artifacts/*
+
+      
+        

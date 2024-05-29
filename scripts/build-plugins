@@ -13,14 +13,23 @@ mkdir -p ${BASE}/build/plugins ${BASE}/bin/plugins
 cd ${BASE}/build/plugins
 git clone -b v1.26.0 --depth 1 https://github.com/kubernetes/cloud-provider-aws.git
 cd cloud-provider-aws
-CGO_ENABLED=0 go build -v -tags="$TAGS" -ldflags="$LDFLAGS" -o=${BASE}/bin/plugins/ecr-credential-provider cmd/ecr-credential-provider/*.go
+CGO_ENABLED=0 go build -v -tags="$TAGS" -ldflags="$LDFLAGS" -o=${BASE}/bin/plugins/ecr-credential-provider-amd64 cmd/ecr-credential-provider/*.go
+if [ "$CROSS" = "true" ] && [ "$ARCH" = "amd64" ]; then
+    CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -v -tags="$TAGS" -ldflags="$LDFLAGS" -o=${BASE}/bin/plugins/ecr-credential-provider cmd/ecr-credential-provider/*.go
+fi
 
 cd ${BASE}/build/plugins
 git clone -b providers/v0.25.5 --depth 1 https://github.com/kubernetes/cloud-provider-gcp.git
 cd cloud-provider-gcp
-CGO_ENABLED=0 go build -v -tags "$TAGS" -ldflags "$LDFLAGS" -o=${BASE}/bin/plugins/auth-provider-gcp cmd/auth-provider-gcp/*.go
+CGO_ENABLED=0 go build -v -tags "$TAGS" -ldflags "$LDFLAGS" -o=${BASE}/bin/plugins/auth-provider-gcp-amd64 cmd/auth-provider-gcp/*.go
+if [ "$CROSS" = "true" ] && [ "$ARCH" = "amd64" ]; then
+    CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -v -tags "$TAGS" -ldflags "$LDFLAGS" -o=${BASE}/bin/plugins/auth-provider-gcp-arm64 cmd/auth-provider-gcp/*.go
+fi
 
 cd ${BASE}/build/plugins
 git clone -b v1.26.0 --depth 1 https://github.com/kubernetes-sigs/cloud-provider-azure.git
 cd cloud-provider-azure
-CGO_ENABLED=0 go build -v -tags "$TAGS" -ldflags "$LDFLAGS" -o=${BASE}/bin/plugins/acr-credential-provider cmd/acr-credential-provider/*.go
+CGO_ENABLED=0 go build -v -tags "$TAGS" -ldflags "$LDFLAGS" -o=${BASE}/bin/plugins/acr-credential-provider-amd64 cmd/acr-credential-provider/*.go
+if [ "$CROSS" = "true" ] && [ "$ARCH" = "amd64" ]; then
+    CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -v -tags "$TAGS" -ldflags "$LDFLAGS" -o=${BASE}/bin/plugins/acr-credential-provider-arm64 cmd/acr-credential-provider/*.go
+fi
