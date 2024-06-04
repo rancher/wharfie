@@ -16,3 +16,8 @@ done
 
 sed "s/  - name: .*/&-amd64/" package/config.yaml > dist/artifacts/config-amd64.yaml
 sed "s/  - name: .*/&-arm64/" package/config.yaml > dist/artifacts/config-arm64.yaml
+
+source scripts/checksum
+
+ARCH=amd64 checksum
+ARCH=arm64 checksum
