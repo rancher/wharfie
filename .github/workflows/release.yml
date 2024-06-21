@@ -5,6 +5,7 @@ on:
 
 env:
     GH_TOKEN: ${{ github.token }}
+    GITHUB_ACTION_TAG: ${{ github.ref_name }}
 
 name: Release
 permissions:
