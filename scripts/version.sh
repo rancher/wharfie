@@ -1,15 +1,16 @@
 #!/bin/bash
 
-if [ -n "$DRONE_TAG" ]; then
-  VERSION="$DRONE_TAG"
-else 
-  git fetch --tags &>/dev/null || true
-  GIT_TAG=$(git describe --tags --dirty 2>/dev/null)
-  if [ -n "$GIT_TAG" ]; then
-    VERSION="$GIT_TAG"
-  else
-    VERSION="v0.0.0-$(git describe --always --dirty)"
-  fi
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+    DIRTY="-dirty"
+fi
+
+COMMIT=$(git rev-parse --short HEAD)
+GIT_TAG=${GITHUB_ACTION_TAG:-$(git tag -l --contains HEAD | head -n 1)}
+
+if [[ -z "$DIRTY" && -n "$GIT_TAG" ]]; then
+    VERSION=$GIT_TAG
+else
+    VERSION="${COMMIT}${DIRTY}"
 fi
 
 if [ -z "$ARCH" ]; then
