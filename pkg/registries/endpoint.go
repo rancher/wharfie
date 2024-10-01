@@ -93,6 +93,12 @@ func (e endpoint) RoundTrip(req *http.Request) (*http.Response, error) {
 	return e.registry.getTransport(req.URL).RoundTrip(req)
 }
 
+// isDefault returns true if this endpoint is the default endpoint for the image -
+// does the registry namespace match the mirror endpoint namespace?
+func (e endpoint) isDefault() bool {
+	return getNamespace(e.ref.Context().RegistryStr()) == getNamespace(e.url.Host)
+}
+
 func getNamespace(host string) string {
 	if host == defaultRegistryHost {
 		return defaultRegistry
