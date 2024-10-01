@@ -21,6 +21,92 @@ import (
 
 const localhost = "127-0-0-1.sslip.io"
 
+func TestImage(t *testing.T) {
+	logrus.SetLevel(logrus.DebugLevel)
+
+	imageTests := map[string]struct {
+		images   []string
+		rewrites map[string]string
+	}{
+		"Pull busybox without rewrite on default endpoint": {
+			images: []string{
+				"library/busybox:latest",
+			},
+			rewrites: map[string]string{
+				"^library/(.*)": "bogus-image-prefix/$1",
+			},
+		},
+	}
+
+	for testName, test := range imageTests {
+		t.Run(testName, func(t *testing.T) {
+			rs, as, mux := newServers(t, "127.0.0.1:443", true, true, true)
+			defer rs.Close()
+			defer as.Close()
+
+			regHost, regEndpoint := getHostEndpoint(rs.Listener.Addr().String(), true, false)
+			authHost, authEndpoint := getHostEndpoint(as.Listener.Addr().String(), true, false)
+
+			t.Logf("INFO: %s registry %s at %s, auth %s at %s, scheme %q", t.Name(), regHost, regEndpoint, authHost, authEndpoint, "Basic")
+
+			mux.Handle("/v2/", serveRegistry(t, "Basic", authEndpoint+"/auth"))
+			mux.Handle("/auth/", serveAuth(t))
+
+			r := &registry{
+				DefaultKeychain: authn.DefaultKeychain,
+				Registry: &Registry{
+					Mirrors: map[string]Mirror{
+						regHost: Mirror{
+							Endpoints: []string{regHost + ":443"},
+							Rewrites:  test.rewrites,
+						},
+					},
+					Configs: map[string]RegistryConfig{
+						regHost: RegistryConfig{
+							Auth: &AuthConfig{Username: "user", Password: "pass"},
+							TLS:  &TLSConfig{InsecureSkipVerify: true},
+						},
+						regHost + ":443": RegistryConfig{
+							Auth: &AuthConfig{Username: "user", Password: "pass"},
+							TLS:  &TLSConfig{InsecureSkipVerify: true},
+						},
+					},
+				},
+				transports: map[string]*http.Transport{},
+			}
+
+			for _, refStr := range test.images {
+				t.Run(refStr, func(t *testing.T) {
+					ref, err := name.ParseReference(regHost + "/" + refStr)
+					if err != nil {
+						t.Fatalf("FATAL: Failed to parse reference: %v", err)
+					}
+
+					// Target the only supported dummy platform, regardless of what we're running on
+					image, err := r.Image(ref, remote.WithPlatform(v1.Platform{Architecture: "amd64", OS: "linux"}))
+					if err != nil {
+						t.Fatalf("FATAL: Failed to get image: %v", err)
+					}
+
+					// confirm that we can get the manifest
+					_, err = image.Manifest()
+					if err != nil {
+						t.Fatalf("FATAL: Failed to get manifest: %v", err)
+					}
+
+					// confirm that we can get the config file
+					_, err = image.ConfigFile()
+					if err != nil {
+						t.Fatalf("FATAL: Failed to get config file: %v", err)
+					}
+
+					t.Logf("OK: %s", ref)
+				})
+			}
+		})
+	}
+}
+
 func TestEndpoint(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 
@@ -156,6 +242,8 @@ func TestEndpoint(t *testing.T) {
 					if err != nil {
 						t.Fatalf("FATAL: Failed to get config file: %v", err)
 					}
+
+					t.Logf("OK: %s", ref)
 				})
 			}
 		})

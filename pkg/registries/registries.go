@@ -57,7 +57,6 @@ func GetPrivateRegistries(path string) (*registry, error) {
 }
 
 func (r *registry) Image(ref name.Reference, options ...remote.Option) (v1.Image, error) {
-	ref = r.rewrite(ref)
 	endpoints, err := r.getEndpoints(ref)
 	if err != nil {
 		return nil, err
@@ -65,8 +64,13 @@ func (r *registry) Image(ref name.Reference, options ...remote.Option) (v1.Image
 
 	errs := []error{}
 	for _, endpoint := range endpoints {
+		epRef := ref
+		if !endpoint.isDefault() {
+			epRef = r.rewrite(ref)
+		}
+		logrus.Debugf("Trying endpoint %s", endpoint.url)
 		endpointOptions := append(options, remote.WithTransport(endpoint), remote.WithAuthFromKeychain(endpoint))
-		remoteImage, err := remote.Image(ref, endpointOptions...)
+		remoteImage, err := remote.Image(epRef, endpointOptions...)
 		if err != nil {
 			logrus.Warnf("Failed to get image from endpoint: %v", err)
 			errs = append(errs, err)
