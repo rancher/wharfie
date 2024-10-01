@@ -2,7 +2,7 @@ module github.com/rancher/wharfie
 
 go 1.22
 
-toolchain go1.22.2
+toolchain go1.22.5
 
 replace (
 	k8s.io/api => github.com/k3s-io/kubernetes/staging/src/k8s.io/api v1.29.9-k3s2
