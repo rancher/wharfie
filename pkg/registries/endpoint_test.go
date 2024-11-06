@@ -3,10 +3,12 @@ package registries
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -351,7 +353,24 @@ func serveRegistry(t *testing.T, authScheme, realm string) http.Handler {
 		resp.Header().Add("Docker-Distribution-Api-Version", "registry/2")
 
 		if authScheme != "" && req.Header.Get("Authorization") == "" {
-			resp.Header().Add("WWW-Authenticate", fmt.Sprintf(`%s realm="%s",service="registry"`, authScheme, realm))
+			var scope string
+			if req.URL.Path == "/v2/" {
+				scope = "registry:catalog"
+			} else if strings.HasPrefix(req.URL.Path, "/v2/library/busybox") {
+				scope = "repository:library/busybox"
+				switch req.Method {
+				case http.MethodGet, http.MethodHead:
+					scope += ":pull"
+				case http.MethodPost, http.MethodPut, http.MethodPatch:
+					scope += ":push,pull"
+				case http.MethodDelete:
+					scope += ":delete"
+				}
+			} else {
+				resp.WriteHeader(http.StatusForbidden)
+				return
+			}
+			resp.Header().Add("WWW-Authenticate", fmt.Sprintf(`%s realm="%s",service="registry",scope="%s"`, authScheme, realm, scope))
 			resp.Header().Add("Content-Type", "application/json")
 			resp.WriteHeader(http.StatusUnauthorized)
 			resp.Write([]byte(`{"errors":[{"code":"UNAUTHORIZED","message":"authentication required","detail":null}]}`))
@@ -381,9 +400,24 @@ func serveRegistry(t *testing.T, authScheme, realm string) http.Handler {
 // It does not actually validate any credentials; any request with an Authorization header will be granted a dummy token.
 func serveAuth(t *testing.T) http.Handler {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		if req.Header.Get("Authorization") != "" {
-			resp.Header().Add("Content-Type", "application/json")
-			resp.Write([]byte(fmt.Sprintf(`{"token": "abc", "access_token": "123", "expires_in": 300, "issued_at": "%s"}`, time.Now().Format(time.RFC3339))))
+		if req.Method != http.MethodGet {
+			resp.WriteHeader(http.StatusMethodNotAllowed)
+		} else if auth := req.Header.Get("Authorization"); auth != "" {
+			if b64, ok := strings.CutPrefix(auth, "Basic "); ok {
+				if b, err := base64.StdEncoding.DecodeString(b64); err == nil {
+					auth = string(b)
+				}
+			}
+			params := req.URL.Query()
+			t.Logf("Got auth request: %+v for %+v", params, auth)
+			if service := params["service"]; len(service) != 1 || service[0] != "registry" {
+				resp.WriteHeader(http.StatusNotFound)
+			} else if scope := params["scope"]; len(scope) != 1 || !(scope[0] == "registry:catalog" || strings.HasPrefix(scope[0], "repository:library/busybox:")) {
+				resp.WriteHeader(http.StatusNotFound)
+			} else {
+				resp.Header().Add("Content-Type", "application/json")
+				resp.Write([]byte(fmt.Sprintf(`{"token": "abc", "access_token": "123", "expires_in": 300, "issued_at": "%s"}`, time.Now().Format(time.RFC3339))))
+			}
 		} else {
 			resp.WriteHeader(http.StatusForbidden)
 		}
