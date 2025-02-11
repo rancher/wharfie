@@ -20,7 +20,7 @@ import (
 	"github.com/rancher/wharfie/pkg/registries"
 	"github.com/rancher/wharfie/pkg/tarfile"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -36,42 +36,42 @@ func main() {
 	app.Version = version
 	app.Action = run
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "private-registry",
 			Usage: "Private registry configuration file",
 			Value: "/etc/rancher/common/registries.yaml",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "images-dir",
 			Usage: "Images tarball directory",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "cache",
 			Usage: "Enable layer cache when image is not available locally",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "cache-dir",
 			Usage: "Layer cache directory",
 			Value: "$XDG_CACHE_HOME/rancher/wharfie",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "image-credential-provider-config",
 			Usage: "Image credential provider configuration file",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "image-credential-provider-bin-dir",
 			Usage: "Image credential provider binary directory",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "debug",
 			Usage: "Enable debug logging",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "arch",
 			Usage: "Override the machine architecture",
 			Value: runtime.GOARCH,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "os",
 			Usage: "Override the machine operating system",
 			Value: runtime.GOOS,
@@ -92,7 +92,7 @@ func main() {
 func run(clx *cli.Context) error {
 	var img v1.Image
 
-	if len(clx.Args()) < 2 {
+	if clx.Args().Len() < 2 {
 		fmt.Fprintf(clx.App.Writer, "Incorrect Usage. <image> and <destination> are required arguments.\n\n")
 		cli.ShowAppHelpAndExit(clx, 1)
 	}
