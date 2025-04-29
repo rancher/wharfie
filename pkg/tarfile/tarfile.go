@@ -146,7 +146,7 @@ func GetOpener(fileName string) (tarball.Opener, error) {
 			return ZstdReadCloser(zr, file), nil
 		}
 	default:
-		return nil, fmt.Errorf("unhandled file type; supported extensions: " + strings.Join(SupportedExtensions, " "))
+		return nil, fmt.Errorf("unhandled file type; supported extensions: %s", strings.Join(SupportedExtensions, " "))
 	}
 	return opener, nil
 }

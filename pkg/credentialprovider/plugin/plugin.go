@@ -2,11 +2,14 @@ package plugin
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/google/go-containerregistry/pkg/authn"
+	authenticationv1 "k8s.io/api/authentication/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 	kubecredentialprovider "k8s.io/kubernetes/pkg/credentialprovider"
 	kubeplugin "k8s.io/kubernetes/pkg/credentialprovider/plugin"
@@ -23,10 +26,17 @@ var _ authn.Keychain = &pluginWrapper{}
 // If the configuration is not valid or any configured plugins are missing, an error will be raised.
 func RegisterCredentialProviderPlugins(imageCredentialProviderConfigFile, imageCredentialProviderBinDir string) (*pluginWrapper, error) {
 	klogSetup()
-	if err := kubeplugin.RegisterCredentialProviderPlugins(imageCredentialProviderConfigFile, imageCredentialProviderBinDir); err != nil {
+	// Upstream code does not check if the functions are ever nil before calling them, so stubs are required.
+	blankTokenFunc := func(_, _ string, _ *authenticationv1.TokenRequest) (*authenticationv1.TokenRequest, error) {
+		return nil, fmt.Errorf("get service account token is not implemented")
+	}
+	blankSAFunc := func(_, _ string) (*corev1.ServiceAccount, error) {
+		return nil, fmt.Errorf("get service account is not implemented")
+	}
+	if err := kubeplugin.RegisterCredentialProviderPlugins(imageCredentialProviderConfigFile, imageCredentialProviderBinDir, blankTokenFunc, blankSAFunc); err != nil {
 		return nil, errors.Wrap(err, "failed to register CRI auth plugins")
 	}
-	return &pluginWrapper{k: kubecredentialprovider.NewDockerKeyring()}, nil
+	return &pluginWrapper{k: kubecredentialprovider.NewDefaultDockerKeyring()}, nil
 }
 
 // Resolve returns an authenticator for the authn.Keychain interface. The authenticator provides
