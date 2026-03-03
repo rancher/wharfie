@@ -2,6 +2,8 @@ package extract
 
 import (
 	"archive/tar"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -9,7 +11,6 @@ import (
 
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -61,7 +62,7 @@ func ExtractDirs(img v1.Image, dirs map[string]string, opts ...Option) error {
 		destination, err := findPath(cleanDirs, h.Name)
 		parent := filepath.Dir(destination)
 		if err != nil {
-			return errors.Wrapf(err, "unable to extract file %s", h.Name)
+			return fmt.Errorf("unable to extract file %s: %w", h.Name, err)
 		}
 		if destination == "" {
 			logrus.Debugf("Skipping file %s", h.Name)
@@ -111,7 +112,7 @@ func ExtractDirs(img v1.Image, dirs map[string]string, opts ...Option) error {
 		case tar.TypeLink:
 			linkname, err := findPath(cleanDirs, h.Linkname)
 			if err != nil {
-				return errors.Wrapf(err, "unable to find target for hardlink %s", destination)
+				return fmt.Errorf("unable to find target for hardlink %s: %w", destination, err)
 			}
 			if linkname == "" {
 				logrus.Warnf("Skipping hardlink %s, target was skipped", destination)
@@ -166,7 +167,7 @@ func cleanExtractDirs(dirs map[string]string) (map[string]string, error) {
 			var err error
 			d, err = filepath.Abs(strings.TrimSuffix(d, ps))
 			if err != nil {
-				return nil, errors.Wrap(err, "invalid destination")
+				return nil, fmt.Errorf("invalid destination: %w", err)
 			}
 		}
 		cleanDirs[s] = d

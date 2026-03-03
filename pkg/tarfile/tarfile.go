@@ -3,6 +3,7 @@ package tarfile
 import (
 	"compress/bzip2"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -14,7 +15,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	"github.com/klauspost/compress/zstd"
 	"github.com/pierrec/lz4"
-	"github.com/pkg/errors"
 	"github.com/rancher/wharfie/pkg/util"
 	"github.com/sirupsen/logrus"
 )
@@ -44,7 +44,7 @@ func FindImage(imagesDir string, imageRef name.Reference) (v1.Image, error) {
 
 	if _, err := os.Stat(imagesDir); err != nil {
 		if os.IsNotExist(err) {
-			return nil, errors.Wrapf(ErrNotFound, "no local image available for %s: directory %s does not exist", imageTag.Name(), imagesDir)
+			return nil, fmt.Errorf("%w: no local image available for %s: directory %s does not exist", ErrNotFound, imageTag.Name(), imagesDir)
 		}
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func FindImage(imagesDir string, imageRef name.Reference) (v1.Image, error) {
 			return img, nil
 		}
 	}
-	return nil, errors.Wrapf(ErrNotFound, "no local image available for %s: not found in any file in %s", imageTag.Name(), imagesDir)
+	return nil, fmt.Errorf("%w: no local image available for %s: not found in any file in %s", ErrNotFound, imageTag.Name(), imagesDir)
 }
 
 // findImage returns a handle to an image in a tarfile on disk.

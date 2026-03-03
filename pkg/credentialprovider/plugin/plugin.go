@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/google/go-containerregistry/pkg/authn"
@@ -34,7 +33,7 @@ func RegisterCredentialProviderPlugins(imageCredentialProviderConfigFile, imageC
 		return nil, fmt.Errorf("get service account is not implemented")
 	}
 	if err := kubeplugin.RegisterCredentialProviderPlugins(imageCredentialProviderConfigFile, imageCredentialProviderBinDir, blankTokenFunc, blankSAFunc); err != nil {
-		return nil, errors.Wrap(err, "failed to register CRI auth plugins")
+		return nil, fmt.Errorf("failed to register CRI auth plugins: %w", err)
 	}
 	return &pluginWrapper{k: kubecredentialprovider.NewDefaultDockerKeyring()}, nil
 }

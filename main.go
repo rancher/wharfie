@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -165,7 +164,7 @@ func run(clx *cli.Context) error {
 		logrus.Infof("Pulling image reference %s", ref.Name())
 		img, err = registry.Image(ref, remote.WithPlatform(v1.Platform{Architecture: clx.String("arch"), OS: clx.String("os")}))
 		if err != nil {
-			return errors.Wrapf(err, "failed to get image reference %s", ref.Name())
+			return fmt.Errorf("failed to get image reference %s: %w", ref.Name(), err)
 		}
 
 		if clx.Bool("cache") {
