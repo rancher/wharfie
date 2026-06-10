@@ -36,10 +36,8 @@ GLOBAL OPTIONS:
 ### image credential providers
 
 ([KEP-2133](https://github.com/kubernetes/enhancements/issues/2133)) [kubelet image credential providers](https://kubernetes.io/docs/tasks/kubelet-credential-provider/kubelet-credential-provider/) are supported.
-At the time of this writing, none of the out-of-tree cloud providers offer standalone binaries. The wharfie docker image (available by running `make package-image`) bundles provider plugins at `/bin/plugins`,
-with a sample config file at `/etc/config.yaml`.
 
-More information is available at:
+Example credential providers include:
 * https://github.com/kubernetes/cloud-provider-aws/tree/master/cmd/ecr-credential-provider
 * https://github.com/kubernetes/cloud-provider-gcp/tree/master/cmd/auth-provider-gcp
 * https://github.com/kubernetes-sigs/cloud-provider-azure/tree/master/cmd/acr-credential-provider
