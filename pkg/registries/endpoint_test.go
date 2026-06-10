@@ -178,6 +178,10 @@ func TestEndpoint(t *testing.T) {
 			authHost, authEndpoint := getHostEndpoint(as.Listener.Addr().String(), test.authTLS, test.explicitPort)
 
 			t.Logf("INFO: %s registry %s at %s, auth %s at %s, scheme %q", t.Name(), regHost, regEndpoint, authHost, authEndpoint, test.authScheme)
+			if test.authScheme == "Bearer" && test.registryTLS && !test.authTLS {
+				t.Skip("Skipping test: Bearer auth does not support secure registry with plaintext auth endpoint")
+				return
+			}
 
 			mux.Handle("/v2/", serveRegistry(t, test.authScheme, authEndpoint+"/auth"))
 			mux.Handle("/auth/", serveAuth(t))
