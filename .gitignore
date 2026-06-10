@@ -1,9 +1,7 @@
 *.swp
-/.dapper
 /.tags
 /.idea
 /.trash-cache
-/.vagrant
 /.kube
 /.cache
 /.docker

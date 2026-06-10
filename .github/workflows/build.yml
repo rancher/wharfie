@@ -1,22 +1,57 @@
+name: Pull Request
 on:
-  push:
-    branches:
-      - master
-  pull_request:
+  pull_request: {}
+  workflow_dispatch: {}
 
-name: Build
-permissions:
-    contents: read
 jobs:
-  build-cross-arch:
+  validate:
+    name: Validate
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+    - name: Checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-    - name: Cross Arch Build
+    - name: Setup Go
+      uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+      with:
+        go-version-file: 'go.mod'
+
+    - name: Validate
       run: |
-        make ci
-      env:
-        CROSS: "true"
-        
+        go vet ./...
+        go test -c ./... -o ./bin/
+        for TEST in ./bin/*.test; do
+          sudo $TEST -test.v
+        done
+
+  build:
+    name: Build
+    needs: Validate
+    strategy:
+      fail-fast: true
+      matrix:
+        arch: [amd64, arm64]
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
+
+    - name: Build Dockerfile
+      uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
+      with:
+        context: .
+        file: ./Dockerfile
+        provenance: mode=min
+        target: binary
+        outputs: type=local,dest=.
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      with:
+        name: wharfie-${{ matrix.arch }}
+        path: bin/wharfie-${{ matrix.arch }}
+        if-no-files-found: error
+        retention-days: 1
