@@ -54,14 +54,38 @@ func FindImage(imagesDir string, imageRef name.Reference) (v1.Image, error) {
 	// Walk the images dir to get a list of tar files.
 	// dotfiles and files with unsupported extensions are ignored.
 	files := map[string]os.FileInfo{}
-	if err := filepath.Walk(imagesDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
+	walkFunc := func(path string, info os.FileInfo) {
 		base := filepath.Base(info.Name())
 		if !info.IsDir() && !strings.HasPrefix(base, ".") && util.HasSuffixI(base, SupportedExtensions...) {
 			files[path] = info
 		}
+	}
+
+	if err := filepath.Walk(imagesDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		// Descend into symlinked directories, only top-level links are followed
+		if info.Mode()&os.ModeSymlink != 0 {
+			linkInfo, err := os.Stat(path)
+			if err != nil {
+				return err
+			}
+			if linkInfo.IsDir() {
+				evalPath, err := filepath.EvalSymlinks(path)
+				if err != nil {
+					return err
+				}
+				filepath.Walk(evalPath, func(path string, info os.FileInfo, err error) error {
+					if err != nil {
+						return err
+					}
+					walkFunc(path, info)
+					return nil
+				})
+			}
+		}
+		walkFunc(path, info)
 		return nil
 	}); err != nil {
 		return nil, err
